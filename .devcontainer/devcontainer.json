@@ -31,8 +31,6 @@
   // L'API et le front, accessibles depuis votre navigateur
   "forwardPorts": [3000, 5173, "db:5432"],
 
-  // Une fois, à la création du conteneur
-  "postCreateCommand": "git config --global --add safe.directory /workspace"
-
-   
+   // Une fois, à la création : les dépendances, et le fichier .env local
+  "postCreateCommand": "git config --global --add safe.directory /workspace && npm ci && (test -f api/.env || cp api/.env.example api/.env)"
 }
