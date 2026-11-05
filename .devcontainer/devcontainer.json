@@ -1,0 +1,36 @@
+{
+  "name": "Hackathon",
+  // VS Code démarre toute la stack, puis s'attache au service « dev »
+  "dockerComposeFile": ["../compose.yaml"],
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "node",
+
+  // Outils en plus de l'image : ici, la CLI GitHub (gh)
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  // Les mêmes extensions et réglages pour toute l'équipe
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "github.vscode-pull-request-github"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": { "source.fixAll.eslint": "explicit" }
+      }
+    }
+  },
+
+  // L'API et le front, accessibles depuis votre navigateur
+  "forwardPorts": [3000, 5173],
+
+  // Une fois, à la création du conteneur
+  "postCreateCommand": "git config --global --add safe.directory /workspace"
+}

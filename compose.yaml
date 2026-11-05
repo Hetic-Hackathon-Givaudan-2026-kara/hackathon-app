@@ -1,0 +1,12 @@
+# La stack de développement. Versions figées : les mêmes qu'en production.
+name: hackathon
+
+services:
+  # Le poste de travail : VS Code s'y attache, on y lance l'API et le front
+  dev:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    command: sleep infinity
+    volumes:
+      - .:/workspace:cached
