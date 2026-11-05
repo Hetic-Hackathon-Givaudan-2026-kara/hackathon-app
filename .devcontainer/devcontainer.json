@@ -29,8 +29,10 @@
   },
 
   // L'API et le front, accessibles depuis votre navigateur
-  "forwardPorts": [3000, 5173],
+  "forwardPorts": [3000, 5173, "db:5432"],
 
   // Une fois, à la création du conteneur
   "postCreateCommand": "git config --global --add safe.directory /workspace"
+
+   
 }
