@@ -10,6 +10,9 @@ services:
     command: sleep infinity
     volumes:
       - .:/workspace:cached
+    extra_hosts:
+      # Rend l'hôte joignable sous Linux (Docker Desktop le fait déjà)
+      - host.docker.internal:host-gateway
     depends_on:
       db:
         condition: service_healthy
