@@ -1,6 +1,8 @@
 import express from 'express';
 import pg from 'pg';
 
+
+const variableInutile = 999;
 // En dev, la configuration vient de api/.env ; en production, de l'hébergeur
 try {
   process.loadEnvFile();
