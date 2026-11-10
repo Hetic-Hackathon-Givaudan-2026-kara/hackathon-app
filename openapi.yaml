@@ -1,0 +1,35 @@
+openapi: 3.0.3
+info:
+  title: Givaudan SmartOrder API
+  description: Spécification du contrat d'interface de la plateforme de commande intelligente B2B.
+  version: 1.0.0
+paths:
+  /api/health:
+    get:
+      summary: Vérification de l'état de l'API
+      responses:
+        '200':
+          description: API opérationnelle
+          content:
+            application/json:
+              example:
+                status: ok
+  /api/catalog/search:
+    post:
+      summary: Recherche de références par langage naturel et descripteurs sensoriels
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  example: 'vanille crémeuse pour boisson'
+                category:
+                  type: string
+                  enum: [flavors, fragrances]
+      responses:
+        '200':
+          description: Liste de références proposées
