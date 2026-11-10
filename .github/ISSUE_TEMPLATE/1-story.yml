@@ -1,0 +1,31 @@
+name: Story
+description: Ce que l'utilisateur gagne. Écrite par le Product.
+type: Feature
+body:
+  - type: markdown
+    attributes:
+      value: "Titre : ce que l'utilisateur peut faire. Exemple : « Un client pose une question sur sa facture »."
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Besoin
+      placeholder: En tant que client, je veux …, afin de …
+    validations:
+      required: true
+  - type: textarea
+    id: criteres
+    attributes:
+      label: Critères d'acceptation
+      description: Vérifiables par quelqu'un d'autre. Une case par critère.
+      value: '- [ ] Étant donné …, quand …, alors …'
+    validations:
+      required: true
+  - type: textarea
+    id: hors-perimetre
+    attributes:
+      label: Hors périmètre
+  - type: input
+    id: maquette
+    attributes:
+      label: Maquette
+      placeholder: Lien Figma

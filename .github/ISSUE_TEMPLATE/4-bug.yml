@@ -1,0 +1,34 @@
+name: Bug
+description: Attendu ≠ observé, reproductible par quelqu'un d'autre.
+type: Bug
+body:
+  - type: markdown
+    attributes:
+      value: 'Titre : ce qui ne va pas. Exemple : « Le total de la facture affiche 0 € ».'
+  - type: textarea
+    id: etapes
+    attributes:
+      label: Étapes
+      value: '1. '
+    validations:
+      required: true
+  - type: input
+    id: attendu
+    attributes:
+      label: Attendu
+    validations:
+      required: true
+  - type: textarea
+    id: observe
+    attributes:
+      label: Observé
+      description: Avec une capture, si possible.
+    validations:
+      required: true
+  - type: input
+    id: ou
+    attributes:
+      label: Où
+      placeholder: develop, commit a1b2c3d, Chrome
+    validations:
+      required: true
