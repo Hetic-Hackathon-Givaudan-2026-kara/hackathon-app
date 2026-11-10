@@ -1,0 +1,26 @@
+name: Tâche
+description: Un travail technique, sans effet visible pour l'utilisateur.
+type: Task
+body:
+  - type: markdown
+    attributes:
+      value: 'Titre : un verbe et ce qui change. Exemple : « Ajouter les modèles de tickets et de PR ».'
+  - type: textarea
+    id: objectif
+    attributes:
+      label: Objectif
+      description: Ce qui change, et pourquoi.
+    validations:
+      required: true
+  - type: textarea
+    id: criteres
+    attributes:
+      label: Critères d'acceptation
+      description: Vérifiables par quelqu'un d'autre. Une case par critère.
+      value: '- [ ] '
+    validations:
+      required: true
+  - type: textarea
+    id: hors-perimetre
+    attributes:
+      label: Hors périmètre

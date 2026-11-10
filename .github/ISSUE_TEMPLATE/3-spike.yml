@@ -1,0 +1,43 @@
+name: Spike
+description: Une exploration Data/IA, en temps limité.
+# Type créé par le tech-lead : Settings → Planning → Issue types
+type: Spike
+body:
+  - type: markdown
+    attributes:
+      value: 'Titre : la question. Exemple : « Un modèle local suffit-il ? ».'
+  - type: input
+    id: question
+    attributes:
+      label: Question
+    validations:
+      required: true
+  - type: textarea
+    id: methode
+    attributes:
+      label: Méthode
+      placeholder: 30 questions réelles, réponses notées par le Product
+    validations:
+      required: true
+  - type: input
+    id: seuil
+    attributes:
+      label: Seuil
+      description: Chiffré, sinon l'exploration ne finit jamais.
+      placeholder: 80 % de réponses justes, en moins de 5 s
+    validations:
+      required: true
+  - type: dropdown
+    id: duree
+    attributes:
+      label: Durée max
+      options:
+        - ½ jour
+        - 1 jour
+    validations:
+      required: true
+  - type: input
+    id: livrable
+    attributes:
+      label: Livrable
+      value: Notebook dans ia/ et décision écrite dans ce ticket
