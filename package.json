@@ -8,10 +8,12 @@
   ],
   "scripts": {
     "dev": "concurrently -n api,web \"npm run dev -w api\" \"npm run dev -w web\"",
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspaces && tsc -p tsconfig.scripts.json",
     "lint": "eslint .",
     "format": "prettier --write . '!db/data'",
     "format:check": "prettier --check . '!db/data'",
+    "seed:catalog": "tsx scripts/seed-catalog.ts",
+    "test:search": "tsx scripts/test-search.ts",
     "prepare": "husky"
   },
   "lint-staged": {

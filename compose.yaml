@@ -18,7 +18,7 @@ services:
         condition: service_healthy
 
   db:
-    image: postgres:17
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app

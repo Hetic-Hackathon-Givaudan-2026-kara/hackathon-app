@@ -1,0 +1,402 @@
+[
+  {
+    "ref_code": "aroma-citrus-001",
+    "name": "Zeste de bergamote",
+    "category": "Agrume",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Bergamote fraîche, zeste vert, acidité vive et légère amertume florale.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-citrus-002",
+    "name": "Orange sanguine",
+    "category": "Agrume",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Orange sanguine juteuse, douceur de pulpe rouge, pointe acidulée et notes zestées.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-citrus-003",
+    "name": "Citron de Sicile",
+    "category": "Agrume",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Citron jaune éclatant, zeste frais, attaque acidulée et finale propre.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-citrus-004",
+    "name": "Yuzu pétillant",
+    "category": "Agrume",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Yuzu aromatique, mandarine et pamplemousse, avec une fraîcheur légèrement florale.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-citrus-005",
+    "name": "Pamplemousse rose",
+    "category": "Agrume",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Pamplemousse rose juteux, douceur fruitée, zeste amer et fraîcheur acidulée.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-006",
+    "name": "Fraise des bois",
+    "category": "Fruit rouge",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Fraise mûre et fraîche, notes de petits fruits rouges et douceur légèrement confiturée.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-007",
+    "name": "Framboise acidulée",
+    "category": "Fruit rouge",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Framboise vive, pulpe juteuse, pointe acidulée et nuance de feuille verte.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-008",
+    "name": "Cassis noir",
+    "category": "Fruit rouge",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Cassis intense, fruit noir acidulé, note bourgeon et finale légèrement tannique.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-009",
+    "name": "Myrtille sauvage",
+    "category": "Fruit rouge",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Myrtille douce et ronde, baies fraîches, nuance boisée et touche acidulée.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-010",
+    "name": "Cerise griotte",
+    "category": "Fruit rouge",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Cerise griotte mûre, pulpe généreuse, acidité équilibrée et légère note d'amande.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-011",
+    "name": "Pêche blanche",
+    "category": "Fruit à noyau",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Pêche blanche veloutée, chair juteuse, douceur florale et finale délicate.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-012",
+    "name": "Abricot du Roussillon",
+    "category": "Fruit à noyau",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Abricot mûr, notes de chair dorée, douceur miellée et pointe acidulée.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-013",
+    "name": "Mangue Alphonso",
+    "category": "Fruit tropical",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Mangue Alphonso pulpeuse, notes tropicales mûres, douceur crémeuse et touche résineuse.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-014",
+    "name": "Fruit de la passion",
+    "category": "Fruit tropical",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Passion très aromatique, acidité vive, pulpe exotique et finale fruitée persistante.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-015",
+    "name": "Ananas Victoria",
+    "category": "Fruit tropical",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Ananas frais et juteux, notes sucrées acidulées et légère touche florale.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-016",
+    "name": "Litchi rose",
+    "category": "Fruit tropical",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Litchi délicat, rose fraîche, fruit blanc sucré et nuance légèrement musquée.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-017",
+    "name": "Goyave rose",
+    "category": "Fruit tropical",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Goyave pulpeuse et parfumée, fraise tropicale, douceur ronde et légère acidité.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-018",
+    "name": "Poire Williams",
+    "category": "Fruit à pépins",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Poire Williams juteuse, chair fraîche, notes miellées et nuance de peau verte.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-019",
+    "name": "Pomme verte Granny",
+    "category": "Fruit à pépins",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Pomme verte croquante, zeste végétal, fraîcheur acidulée et finale nette.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-fruit-020",
+    "name": "Melon charentais",
+    "category": "Fruit d'été",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Melon charentais mûr, chair sucrée, notes aqueuses et fraîcheur estivale.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-herbal-021",
+    "name": "Menthe verte",
+    "category": "Herbacé",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Menthe fraîche et douce, feuille froissée, fraîcheur vivifiante sans excès de menthol.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-herbal-022",
+    "name": "Basilic grand vert",
+    "category": "Herbacé",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Basilic aromatique, notes vertes et légèrement poivrées, finale anisée subtile.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-herbal-023",
+    "name": "Verveine citronnée",
+    "category": "Herbacé",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Verveine citronnée, feuille fraîche, agrume doux et nuance herbacée apaisante.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-herbal-024",
+    "name": "Thé vert Sencha",
+    "category": "Thé",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Thé vert Sencha végétal, notes de feuille tendre, légère astringence et umami délicat.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-herbal-025",
+    "name": "Thé noir Earl Grey",
+    "category": "Thé",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Thé noir corsé, bergamote zestée, tanins élégants et finale aromatique persistante.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-floral-026",
+    "name": "Fleur de sureau",
+    "category": "Floral",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Fleur de sureau douce, notes de poire, nuances miellées et fraîcheur printanière.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-floral-027",
+    "name": "Jasmin sambac",
+    "category": "Floral",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Jasmin blanc floral, accents de thé et de fruit, profil délicat et lumineux.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-floral-028",
+    "name": "Rose de Damas",
+    "category": "Floral",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Pétales de rose de Damas, fraîcheur rosée, douceur poudrée et touche fruitée.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-floral-029",
+    "name": "Lavande de Provence",
+    "category": "Floral",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Lavande aromatique, camphre léger, notes florales sèches et finale herbacée.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-floral-030",
+    "name": "Fleur d'oranger",
+    "category": "Floral",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Fleur d'oranger lumineuse, néroli, douceur miellée et délicate note d'agrume.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-spice-031",
+    "name": "Vanille Bourbon",
+    "category": "Épicé",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Vanille Bourbon crémeuse, notes balsamiques, sucre brun et longue finale chaleureuse.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-spice-032",
+    "name": "Cardamome verte",
+    "category": "Épicé",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Cardamome verte fraîche, citronnée et camphrée, avec une chaleur épicée modérée.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-spice-033",
+    "name": "Gingembre frais",
+    "category": "Épicé",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Gingembre frais, chaleur piquante, notes citronnées et finale vive et persistante.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-spice-034",
+    "name": "Cannelle de Ceylan",
+    "category": "Épicé",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Cannelle douce et boisée, chaleur enveloppante, notes pâtissières et légère fraîcheur.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-spice-035",
+    "name": "Safran délicat",
+    "category": "Épicé",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Safran floral et miellé, nuances sèches, légère amertume et caractère élégant.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-dessert-036",
+    "name": "Caramel beurre salé",
+    "category": "Gourmand",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Caramel cuit, beurre salé, sucre brun et pointe lactée ronde.",
+    "is_natural": false
+  },
+  {
+    "ref_code": "aroma-dessert-037",
+    "name": "Chocolat noir intense",
+    "category": "Gourmand",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Cacao noir torréfié, amertume équilibrée, notes de fève et finale veloutée.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-dessert-038",
+    "name": "Amande grillée",
+    "category": "Gourmand",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Amande toastée, notes sèches et légèrement vanillées, douceur subtile de fruits à coque.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "aroma-dessert-039",
+    "name": "Noisette pralinée",
+    "category": "Gourmand",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Noisette grillée, praliné doux, notes de cacao et texture aromatique crémeuse.",
+    "is_natural": false
+  },
+  {
+    "ref_code": "aroma-dessert-040",
+    "name": "Miel d'acacia",
+    "category": "Gourmand",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Miel d'acacia floral, douceur limpide, notes cireuses fines et finale délicate.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "fragrance-floral-041",
+    "name": "Jardin de pivoine",
+    "category": "Floral",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Pivoine fraîche, rose tendre, pétales rosés et fond musqué propre.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "fragrance-woody-042",
+    "name": "Cèdre blanc",
+    "category": "Boisé",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Cèdre sec et lumineux, bois blond, nuance résineuse et élégante fraîcheur minérale.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "fragrance-woody-043",
+    "name": "Santal crémeux",
+    "category": "Boisé",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Bois de santal doux, facette lactée, épices veloutées et fond boisé chaleureux.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "fragrance-woody-044",
+    "name": "Patchouli terreux",
+    "category": "Boisé",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Patchouli profond, terre humide, bois sombre et touche de cacao sec.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "fragrance-fresh-045",
+    "name": "Néroli méditerranéen",
+    "category": "Floral",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Néroli frais, fleur d'oranger, petitgrain vert et douceur propre et lumineuse.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "fragrance-amber-046",
+    "name": "Ambre doré",
+    "category": "Ambré",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Ambre chaud, benjoin balsamique, vanille douce et résine enveloppante.",
+    "is_natural": false
+  },
+  {
+    "ref_code": "fragrance-musk-047",
+    "name": "Musc blanc coton",
+    "category": "Musqué",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Musc blanc propre, linge frais, douceur poudrée et sillage doux et aérien.",
+    "is_natural": false
+  },
+  {
+    "ref_code": "fragrance-green-048",
+    "name": "Feuille de figuier",
+    "category": "Vert",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Feuille de figuier verte, sève lactée, bois clair et nuance de noix de coco.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "fragrance-woody-049",
+    "name": "Vétiver haïtien",
+    "category": "Boisé",
+    "application_type": "Poudre à mélanger",
+    "sensory_notes": "Vétiver sec et terreux, racines fraîches, fumée légère et bois élégant.",
+    "is_natural": true
+  },
+  {
+    "ref_code": "fragrance-spice-050",
+    "name": "Poivre rose",
+    "category": "Épicé",
+    "application_type": "Prête à boire",
+    "sensory_notes": "Poivre rose frais, épice pétillante, baies rosées et fond légèrement boisé.",
+    "is_natural": true
+  }
+]
