@@ -12,8 +12,18 @@ paths:
           description: API opérationnelle
           content:
             application/json:
+              schema:
+                type: object
+                required: [status, db]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  db:
+                    type: string
               example:
                 status: ok
+                db: PostgreSQL 17
   /api/catalog/search:
     post:
       summary: Recherche de références par langage naturel et descripteurs sensoriels
@@ -23,13 +33,239 @@ paths:
           application/json:
             schema:
               type: object
+              required: [query]
               properties:
                 query:
                   type: string
-                  example: 'vanille crémeuse pour boisson'
+                  minLength: 1
+                  example: vanille crémeuse pour boisson
                 category:
                   type: string
                   enum: [flavors, fragrances]
+                  description: Contexte sémantique facultatif pour la qualification et l'embedding.
       responses:
         '200':
-          description: Liste de références proposées
+          description: Meilleure référence, alternative et qualification de la demande.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/samples:
+    post:
+      summary: Créer une commande d'échantillon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reference_id, shipping_address]
+              properties:
+                reference_id:
+                  type: integer
+                  minimum: 1
+                client_name:
+                  type: string
+                  nullable: true
+                  maxLength: 100
+                shipping_address:
+                  type: string
+                  minLength: 1
+                quantity:
+                  type: integer
+                  minimum: 1
+                  default: 1
+      responses:
+        '201':
+          description: Commande d'échantillon créée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SampleRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/samples/{id}:
+    get:
+      summary: Récupérer une commande d'échantillon
+      parameters:
+        - $ref: '#/components/parameters/SampleId'
+      responses:
+        '200':
+          description: Détails et statut de la commande.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SampleRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/samples/{id}/status:
+    patch:
+      summary: Mettre à jour le statut d'une commande d'échantillon
+      parameters:
+        - $ref: '#/components/parameters/SampleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [Demandé, Préparé, Expédié]
+      responses:
+        '200':
+          description: Commande mise à jour.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SampleRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  parameters:
+    SampleId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  responses:
+    BadRequest:
+      description: Requête invalide.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Ressource introuvable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Erreur interne du serveur.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    Qualification:
+      type: object
+      additionalProperties: false
+      required: [application, profile_tags, is_complete, followup_question]
+      properties:
+        application:
+          type: string
+        profile_tags:
+          type: array
+          items:
+            type: string
+        is_complete:
+          type: boolean
+        followup_question:
+          type: string
+          nullable: true
+    CatalogMatch:
+      type: object
+      required:
+        - id
+        - ref_code
+        - name
+        - category
+        - application_type
+        - sensory_notes
+        - is_natural
+        - similarity
+      properties:
+        id:
+          type: integer
+        ref_code:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        application_type:
+          type: string
+        sensory_notes:
+          type: string
+        is_natural:
+          type: boolean
+          nullable: true
+        similarity:
+          type: number
+          nullable: true
+    CatalogSearchResponse:
+      type: object
+      required: [qualification, bestMatch, alternative]
+      properties:
+        qualification:
+          $ref: '#/components/schemas/Qualification'
+        bestMatch:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/CatalogMatch'
+        alternative:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/CatalogMatch'
+    SampleRequest:
+      type: object
+      required:
+        - id
+        - reference_id
+        - client_name
+        - shipping_address
+        - quantity
+        - status
+        - created_at
+      properties:
+        id:
+          type: integer
+        reference_id:
+          type: integer
+        client_name:
+          type: string
+          nullable: true
+        shipping_address:
+          type: string
+        quantity:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          nullable: true
+          enum: [Demandé, Préparé, Expédié]
+        created_at:
+          type: string
+          nullable: true
+          format: date-time

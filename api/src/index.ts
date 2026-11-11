@@ -1,5 +1,7 @@
 import express from 'express';
 import pg from 'pg';
+import { createCatalogRouter } from './routes/catalog.routes.js';
+import { createSamplesRouter } from './routes/samples.routes.js';
 
 // En dev, la configuration vient de api/.env ; en production, de l'hébergeur
 try {
@@ -16,6 +18,8 @@ const PORT = Number(process.env.PORT ?? 3000);
 const db = new pg.Pool({ connectionString: DATABASE_URL });
 const app = express();
 app.use(express.json());
+app.use('/api/catalog', createCatalogRouter(db));
+app.use('/api/samples', createSamplesRouter(db));
 
 app.get('/api/health', async (_req, res) => {
   const { rows } = await db.query('SELECT version()');
@@ -79,5 +83,34 @@ async function askDataTeam(question: string): Promise<string> {
   const data = await response.json();
   return data.answer;
 }
+
+app.use(
+  (
+    error: unknown,
+    _request: express.Request,
+    response: express.Response,
+    next: express.NextFunction,
+  ) => {
+    if (response.headersSent) {
+      next(error);
+      return;
+    }
+
+    const status =
+      typeof error === 'object' &&
+      error !== null &&
+      'status' in error &&
+      typeof error.status === 'number' &&
+      error.status >= 400 &&
+      error.status < 500
+        ? error.status
+        : 500;
+    console.error('Erreur API :', error);
+    response.status(status).json({
+      error: status < 500 ? 'Requête invalide.' : 'Erreur interne du serveur.',
+    });
+  },
+);
+
 // Sans adresse, Node écoute sur toutes les interfaces : joignable hors du conteneur
 app.listen(PORT, () => console.log(`API sur http://localhost:${PORT}`));
