@@ -1,5 +1,8 @@
 import express from 'express';
 import pg from 'pg';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+import { fileURLToPath } from 'node:url';
 import { createCatalogRouter } from './routes/catalog.routes.js';
 import { createSamplesRouter } from './routes/samples.routes.js';
 
@@ -17,7 +20,11 @@ const PORT = Number(process.env.PORT ?? 3000);
 
 const db = new pg.Pool({ connectionString: DATABASE_URL });
 const app = express();
+const openApiDocument = YAML.load(
+  fileURLToPath(new URL('../../openapi.yaml', import.meta.url)),
+);
 app.use(express.json());
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
 app.use('/api/catalog', createCatalogRouter(db));
 app.use('/api/samples', createSamplesRouter(db));
 

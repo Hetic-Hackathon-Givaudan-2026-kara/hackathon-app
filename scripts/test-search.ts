@@ -13,8 +13,9 @@ const queryText =
 const embed = createEmbeddingClient();
 const queryVector = await embed(queryText);
 if (queryVector === null) {
+  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
   throw new Error(
-    'Ollama est indisponible : impossible de vectoriser la recherche.',
+    `Ollama est indisponible à ${ollamaBaseUrl} : impossible de vectoriser la recherche.`,
   );
 }
 

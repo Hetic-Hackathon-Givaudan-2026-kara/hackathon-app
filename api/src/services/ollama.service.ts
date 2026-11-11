@@ -1,9 +1,9 @@
-const OLLAMA_URL = 'http://localhost:11434';
 const QUALIFICATION_MODEL = 'qwen2.5:1.5b-instruct-q4_K_M';
 const EMBEDDING_MODEL = 'nomic-embed-text';
 const EMBEDDING_DIMENSIONS = 768;
 
 export interface IntentQualification {
+  category: 'Flavor' | 'Fragrance';
   application: string;
   profile_tags: string[];
   is_complete: boolean;
@@ -13,16 +13,24 @@ export interface IntentQualification {
 const qualificationFormat = {
   type: 'object',
   properties: {
+    category: { type: 'string', enum: ['Flavor', 'Fragrance'] },
     application: { type: 'string' },
     profile_tags: { type: 'array', items: { type: 'string' } },
     is_complete: { type: 'boolean' },
     followup_question: { type: ['string', 'null'] },
   },
-  required: ['application', 'profile_tags', 'is_complete', 'followup_question'],
+  required: [
+    'category',
+    'application',
+    'profile_tags',
+    'is_complete',
+    'followup_question',
+  ],
   additionalProperties: false,
 };
 
 const fallbackQualification: IntentQualification = {
+  category: 'Fragrance',
   application: '',
   profile_tags: [],
   is_complete: false,
@@ -35,6 +43,13 @@ export async function qualifyIntent(
   category?: string,
 ): Promise<IntentQualification> {
   const context = category ? `Catégorie souhaitée : ${category}.\n` : '';
+  const promptCategory = detectFlavorCategory(prompt)
+    ? 'Flavor'
+    : category === 'flavors'
+      ? 'Flavor'
+      : category === 'fragrances'
+        ? 'Fragrance'
+        : null;
   const payload = await postOllama('/api/chat', {
     model: QUALIFICATION_MODEL,
     stream: false,
@@ -43,9 +58,13 @@ export async function qualifyIntent(
       {
         role: 'system',
         content:
-          'Tu qualifies une demande de recherche d’arômes ou de fragrances. ' +
-          'Extrais l’application, les descripteurs sensoriels et indique si la demande est complète. ' +
-          'Si une information utile manque, pose une seule question de suivi. ' +
+          'Tu es un expert-aromaticien Givaudan. Tu qualifies exclusivement des demandes de recherche d’arômes ou de fragrances. ' +
+          'Définis category à Flavor si le texte mentionne un arôme, le goût, une boisson, une saveur ou une protéine; ne demande jamais à l’utilisateur de choisir entre arôme et fragrance lorsque ces indices sont présents. ' +
+          'Reste strictement dans le domaine d’application explicitement indiqué par l’utilisateur : ne propose jamais une application sans rapport et ne bascule jamais vers les boissons, le vin ou le champagne si la demande concerne un autre produit. ' +
+          'Extrais l’application et les descripteurs sensoriels, puis indique si la demande est complète. N’invente aucune contrainte absente du brief. ' +
+          'Un profil gustatif ou olfactif, une application et une fonction de masquage constituent trois critères clés. Dès qu’au moins deux de ces critères sont présents dans le brief, définis obligatoirement is_complete à true et followup_question à null. ' +
+          'Si une précision est nécessaire, pose une seule question de suivi strictement technique, portant uniquement sur le mode de transformation, le masquage de l’amertume, la tolérance thermique, le pH ou la solubilité. ' +
+          'Ne pose jamais de méta-question générique telle que « Voulez-vous des options ? », « Voulez-vous que je vous aide ? » ou une formulation équivalente. Ne pose aucune question marketing, commerciale, sportive ou destinée au grand public. Si aucune précision technique n’est nécessaire, définis followup_question à null. ' +
           'Réponds uniquement avec un objet JSON conforme au schéma demandé.',
       },
       { role: 'user', content: `${context}${prompt}` },
@@ -55,7 +74,10 @@ export async function qualifyIntent(
 
   if (payload === null) {
     console.warn('Ollama indisponible : qualification de secours utilisée.');
-    return { ...fallbackQualification };
+    return {
+      ...fallbackQualification,
+      category: promptCategory ?? fallbackQualification.category,
+    };
   }
 
   const message = getRecord(payload, 'message');
@@ -77,7 +99,31 @@ export async function qualifyIntent(
     );
   }
 
-  return validateQualification(parsed);
+  const extractedData = validateQualification(parsed);
+  const promptText = prompt.toLowerCase();
+  const hasProfile =
+    extractedData.profile_tags && extractedData.profile_tags.length > 0;
+  const hasApplication =
+    Boolean(extractedData.application) || promptText.includes('masquer');
+  const qualification: IntentQualification = {
+    ...extractedData,
+    category: promptCategory ?? extractedData.category,
+  };
+
+  if (hasProfile && hasApplication) {
+    qualification.is_complete = true;
+    qualification.followup_question = null;
+  }
+
+  return qualification;
+}
+
+function detectFlavorCategory(prompt: string): boolean {
+  const normalizedPrompt = prompt
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+  return /\b(?:arome|gout|boisson|saveur|proteine)\b/u.test(normalizedPrompt);
 }
 
 export async function generateEmbedding(text: string): Promise<number[]> {
@@ -116,7 +162,9 @@ async function postOllama(
 ): Promise<unknown | null> {
   let response: Response;
   try {
-    response = await fetch(`${OLLAMA_URL}${path}`, {
+    const ollamaBaseUrl =
+      process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
+    response = await fetch(`${ollamaBaseUrl}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -142,6 +190,7 @@ function validateQualification(value: unknown): IntentQualification {
   }
 
   const expectedKeys = [
+    'category',
     'application',
     'profile_tags',
     'is_complete',
@@ -156,8 +205,15 @@ function validateQualification(value: unknown): IntentQualification {
     );
   }
 
-  const { application, profile_tags, is_complete, followup_question } = value;
+  const {
+    category,
+    application,
+    profile_tags,
+    is_complete,
+    followup_question,
+  } = value;
   if (
+    (category !== 'Flavor' && category !== 'Fragrance') ||
     typeof application !== 'string' ||
     !Array.isArray(profile_tags) ||
     !profile_tags.every((tag) => typeof tag === 'string') ||
@@ -167,7 +223,13 @@ function validateQualification(value: unknown): IntentQualification {
     throw new Error('La qualification Ollama contient des champs invalides.');
   }
 
-  return { application, profile_tags, is_complete, followup_question };
+  return {
+    category,
+    application,
+    profile_tags,
+    is_complete,
+    followup_question,
+  };
 }
 
 function getRecord(value: unknown, label: string): Record<string, unknown> {

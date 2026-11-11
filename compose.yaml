@@ -10,8 +10,32 @@ services:
     command: sleep infinity
     volumes:
       - .:/workspace:cached
+    environment:
+      # Use http://localhost:3000 to target the API launched inside dev instead.
+      API_PROXY_TARGET: ${API_PROXY_TARGET:-http://api:3000}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     extra_hosts:
       # Rend l'hôte joignable sous Linux (Docker Desktop le fait déjà)
+      - host.docker.internal:host-gateway
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  api:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    working_dir: /workspace
+    command: npm run dev -w api
+    volumes:
+      - .:/workspace:cached
+    ports:
+      - '3000:3000'
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts:
       - host.docker.internal:host-gateway
     depends_on:
       db:

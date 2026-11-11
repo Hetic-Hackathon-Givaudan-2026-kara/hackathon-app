@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 export const EMBEDDING_DIMENSIONS = 768;
 
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OLLAMA_EMBEDDINGS_URL = 'http://localhost:11434/api/embeddings';
 const EMBEDDING_MODEL = 'nomic-embed-text';
 
 export interface CatalogItem {
@@ -182,7 +181,9 @@ export function createEmbeddingClient(): (
 
     let response: Response;
     try {
-      response = await fetch(OLLAMA_EMBEDDINGS_URL, {
+      const ollamaBaseUrl =
+        process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
+      response = await fetch(`${ollamaBaseUrl}/api/embeddings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: EMBEDDING_MODEL, prompt: text }),

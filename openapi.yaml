@@ -1,12 +1,23 @@
 openapi: 3.0.3
 info:
   title: Givaudan SmartOrder API
-  description: Spécification du contrat d'interface de la plateforme de commande intelligente B2B.
   version: 1.0.0
+  description: >-
+    API de SmartOrder pour qualifier un brief aromatique, rechercher des
+    références dans le catalogue et gérer les demandes d'échantillons.
+servers:
+  - url: http://localhost:3000
+    description: Environnement local
+tags:
+  - name: System
+  - name: Catalog
+  - name: Samples
+  - name: Questions
 paths:
   /api/health:
     get:
-      summary: Vérification de l'état de l'API
+      tags: [System]
+      summary: Vérifier l'état de l'API et de PostgreSQL
       responses:
         '200':
           description: API opérationnelle
@@ -21,31 +32,50 @@ paths:
                     enum: [ok]
                   db:
                     type: string
+                    description: Version renvoyée par PostgreSQL.
               example:
                 status: ok
                 db: PostgreSQL 17
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/catalog/search:
     post:
-      summary: Recherche de références par langage naturel et descripteurs sensoriels
+      tags: [Catalog]
+      summary: Qualifier un brief et rechercher des références
+      description: >-
+        Qualifie le brief aromatique et, s'il est complet, effectue une
+        recherche vectorielle par similarité cosinus dans le catalogue
+        pgvector. Avec action `skip`, la qualification fournie est réutilisée
+        et le modèle de qualification n'est pas rappelé. Une qualification
+        incomplète renvoie des résultats nuls sans lancer la recherche.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [query]
-              properties:
-                query:
-                  type: string
-                  minLength: 1
-                  example: vanille crémeuse pour boisson
-                category:
-                  type: string
-                  enum: [flavors, fragrances]
-                  description: Contexte sémantique facultatif pour la qualification et l'embedding.
+              oneOf:
+                - $ref: '#/components/schemas/CatalogSearchRequest'
+                - $ref: '#/components/schemas/CatalogSearchSkipRequest'
+            examples:
+              normal:
+                summary: Recherche normale
+                value:
+                  query: Une vanille crémeuse pour une boisson prête à boire
+                  category: flavors
+              skip:
+                summary: Continuer sans répondre à la question d'affinage
+                value:
+                  query: Une vanille crémeuse pour une boisson prête à boire
+                  action: skip
+                  qualification:
+                    category: Flavor
+                    application: boisson prête à boire
+                    profile_tags: [vanille, crémeux]
+                    is_complete: false
+                    followup_question: Quelle tolérance thermique est requise ?
       responses:
         '200':
-          description: Meilleure référence, alternative et qualification de la demande.
+          description: Qualification et jusqu'à deux références correspondantes.
           content:
             application/json:
               schema:
@@ -56,7 +86,9 @@ paths:
           $ref: '#/components/responses/InternalError'
   /api/samples:
     post:
-      summary: Créer une commande d'échantillon
+      tags: [Samples]
+      summary: Créer une demande d'échantillon
+      description: Crée une demande pour une référence existante du catalogue.
       requestBody:
         required: true
         content:
@@ -69,6 +101,7 @@ paths:
                 reference_id:
                   type: integer
                   minimum: 1
+                  description: Identifiant de la référence catalogue.
                 client_name:
                   type: string
                   nullable: true
@@ -80,9 +113,14 @@ paths:
                   type: integer
                   minimum: 1
                   default: 1
+            example:
+              reference_id: 12
+              client_name: Camille Martin
+              shipping_address: 10 rue des Arômes, 75001 Paris, France
+              quantity: 2
       responses:
         '201':
-          description: Commande d'échantillon créée.
+          description: Demande d'échantillon créée.
           content:
             application/json:
               schema:
@@ -95,12 +133,13 @@ paths:
           $ref: '#/components/responses/InternalError'
   /api/samples/{id}:
     get:
-      summary: Récupérer une commande d'échantillon
+      tags: [Samples]
+      summary: Récupérer une demande et son statut
       parameters:
         - $ref: '#/components/parameters/SampleId'
       responses:
         '200':
-          description: Détails et statut de la commande.
+          description: Détails et avancement de la demande.
           content:
             application/json:
               schema:
@@ -113,7 +152,9 @@ paths:
           $ref: '#/components/responses/InternalError'
   /api/samples/{id}/status:
     patch:
-      summary: Mettre à jour le statut d'une commande d'échantillon
+      tags: [Samples]
+      summary: Mettre à jour le statut d'une demande
+      description: Opération de suivi réservée à l'équipe ADV.
       parameters:
         - $ref: '#/components/parameters/SampleId'
       requestBody:
@@ -126,11 +167,12 @@ paths:
               required: [status]
               properties:
                 status:
-                  type: string
-                  enum: [Demandé, Préparé, Expédié]
+                  $ref: '#/components/schemas/SampleStatus'
+            example:
+              status: Préparé
       responses:
         '200':
-          description: Commande mise à jour.
+          description: Demande mise à jour.
           content:
             application/json:
               schema:
@@ -141,18 +183,60 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/questions:
+    get:
+      tags: [Questions]
+      summary: Lister les dix dernières questions
+      responses:
+        '200':
+          description: Historique des questions et réponses.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Question'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Questions]
+      summary: Poser une question au service IA configuré
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [question]
+              properties:
+                question:
+                  type: string
+                  minLength: 1
+      responses:
+        '201':
+          description: Question traitée et enregistrée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
 components:
   parameters:
     SampleId:
       name: id
       in: path
       required: true
+      description: Identifiant entier positif de la demande.
       schema:
         type: integer
         minimum: 1
   responses:
     BadRequest:
-      description: Requête invalide.
+      description: Requête invalide ou champs non conformes.
       content:
         application/json:
           schema:
@@ -170,17 +254,45 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
   schemas:
-    ErrorResponse:
+    CatalogSearchRequest:
       type: object
-      required: [error]
+      additionalProperties: false
+      required: [query]
       properties:
-        error:
+        query:
           type: string
+          minLength: 1
+          description: Brief ou prompt utilisateur.
+          example: Une vanille crémeuse pour une boisson prête à boire
+        category:
+          type: string
+          enum: [flavors, fragrances]
+          description: Contexte facultatif pour la qualification.
+    CatalogSearchSkipRequest:
+      allOf:
+        - $ref: '#/components/schemas/CatalogSearchRequest'
+        - type: object
+          required: [action, qualification]
+          properties:
+            action:
+              type: string
+              description: Réutiliser la qualification sans rappeler le LLM.
+              enum: [skip]
+            qualification:
+              $ref: '#/components/schemas/Qualification'
     Qualification:
       type: object
       additionalProperties: false
-      required: [application, profile_tags, is_complete, followup_question]
+      required:
+        - category
+        - application
+        - profile_tags
+        - is_complete
+        - followup_question
       properties:
+        category:
+          type: string
+          enum: [Flavor, Fragrance]
         application:
           type: string
         profile_tags:
@@ -192,8 +304,24 @@ components:
         followup_question:
           type: string
           nullable: true
-    CatalogMatch:
+    CatalogSearchResponse:
       type: object
+      additionalProperties: false
+      required: [qualification, bestMatch, alternative]
+      properties:
+        qualification:
+          $ref: '#/components/schemas/Qualification'
+        bestMatch:
+          allOf:
+            - $ref: '#/components/schemas/CatalogItem'
+          nullable: true
+        alternative:
+          allOf:
+            - $ref: '#/components/schemas/CatalogItem'
+          nullable: true
+    CatalogItem:
+      type: object
+      additionalProperties: false
       required:
         - id
         - ref_code
@@ -222,22 +350,10 @@ components:
         similarity:
           type: number
           nullable: true
-    CatalogSearchResponse:
-      type: object
-      required: [qualification, bestMatch, alternative]
-      properties:
-        qualification:
-          $ref: '#/components/schemas/Qualification'
-        bestMatch:
-          type: object
-          nullable: true
-          allOf:
-            - $ref: '#/components/schemas/CatalogMatch'
-        alternative:
-          type: object
-          nullable: true
-          allOf:
-            - $ref: '#/components/schemas/CatalogMatch'
+          description: Score de similarité renvoyé par l'API (distance cosinus inversée).
+    SampleStatus:
+      type: string
+      enum: [Demandé, Préparé, Expédié]
     SampleRequest:
       type: object
       required:
@@ -262,10 +378,29 @@ components:
           type: integer
           nullable: true
         status:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/SampleStatus'
           nullable: true
-          enum: [Demandé, Préparé, Expédié]
         created_at:
           type: string
-          nullable: true
           format: date-time
+          nullable: true
+    Question:
+      type: object
+      required: [id, question, answer, created_at]
+      properties:
+        id:
+          type: integer
+        question:
+          type: string
+        answer:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
