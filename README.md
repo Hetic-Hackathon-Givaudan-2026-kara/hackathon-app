@@ -23,7 +23,7 @@ _Note : Assurez-vous que l'application Ollama tourne en arrière-plan sur votre 
    npm run seed:catalog
    ```
 
-   `data/raw_catalog.csv` est utilisé s'il existe; sinon le script charge `data/raw_catalog.json`.
+   Le script ingère les deux sources si elles existent : `data/raw_catalog.csv` (fragrances) et `data/raw_catalog.json` (arômes). Laissez Ollama disponible pendant toute l'ingestion pour générer des embeddings valides; les anciennes lignes avec un embedding nul seront réindexées.
    Depuis le Dev Container, vérifiez l'API avec `curl -sS http://api:3000/api/health`. Le nom `api` n'est résolu que sur le réseau Compose; depuis l'hôte, utilisez `http://localhost:3000/api/health`.
 
 3. Lancez le client Vite dans le terminal du Dev Container :

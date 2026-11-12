@@ -4,7 +4,6 @@ import {
   createEmbeddingClient,
   loadApiEnvironment,
   loadCatalog,
-  zeroEmbedding,
 } from './catalog-utils.js';
 
 loadApiEnvironment();
@@ -20,7 +19,6 @@ if (!databaseUrl) {
 
 const pool = new pg.Pool({ connectionString: databaseUrl });
 const embed = createEmbeddingClient();
-let warnedOffline = false;
 let inserted = 0;
 
 try {
@@ -33,13 +31,12 @@ try {
       const prepared = await Promise.all(
         batch.map(async (item) => {
           const vector = await embed(item.sensoryNotes);
-          if (vector === null && !warnedOffline) {
-            console.warn(
-              'Ollama est indisponible : les références sans embedding utiliseront un vecteur nul.',
+          if (vector === null) {
+            throw new Error(
+              'Ollama est indisponible : le catalogue ne peut pas être indexé sans embeddings.',
             );
-            warnedOffline = true;
           }
-          return { item, vector: vector ?? zeroEmbedding() };
+          return { item, vector };
         }),
       );
 
@@ -61,7 +58,10 @@ try {
         `INSERT INTO catalog_items
           (ref_code, name, category, application_type, sensory_notes, is_natural, embedding)
          VALUES ${tuples.join(', ')}
-         ON CONFLICT (ref_code) DO NOTHING`,
+         ON CONFLICT (ref_code) DO UPDATE
+           SET embedding = EXCLUDED.embedding
+         WHERE catalog_items.embedding IS NULL
+            OR vector_norm(catalog_items.embedding) = 0`,
         parameters,
       );
       inserted += result.rowCount ?? 0;
@@ -81,7 +81,9 @@ try {
   } finally {
     client.release();
   }
-  console.log(`${inserted} référence(s) ajoutée(s) depuis ${source}.`);
+  console.log(
+    `${inserted} référence(s) ajoutée(s) ou réindexée(s) depuis ${source}.`,
+  );
 } finally {
   await pool.end();
 }

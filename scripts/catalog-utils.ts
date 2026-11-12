@@ -23,33 +23,37 @@ export function loadCatalog(): {
   items: CatalogItem[];
   source: string;
 } {
+  const items: CatalogItem[] = [];
+  const sources: string[] = [];
   const csvPath = resolve(PROJECT_ROOT, 'data/raw_catalog.csv');
   if (existsSync(csvPath)) {
     const records = parseCsv(readFileSync(csvPath, 'utf8'));
-    return {
-      items: records.map(normalizeRecord),
-      source: 'data/raw_catalog.csv',
-    };
+    items.push(...records.map(normalizeRecord));
+    sources.push('data/raw_catalog.csv');
   }
 
   const jsonPath = resolve(PROJECT_ROOT, 'data/raw_catalog.json');
-  if (!existsSync(jsonPath)) {
+  if (existsSync(jsonPath)) {
+    const parsed: unknown = JSON.parse(readFileSync(jsonPath, 'utf8'));
+    if (!Array.isArray(parsed)) {
+      throw new Error('data/raw_catalog.json doit contenir un tableau.');
+    }
+
+    items.push(
+      ...parsed.map((record: unknown) =>
+        normalizeRecord(asRecord(record, 'Entrée JSON')),
+      ),
+    );
+    sources.push('data/raw_catalog.json');
+  }
+
+  if (items.length === 0) {
     throw new Error(
       'Catalogue introuvable : ajoutez data/raw_catalog.csv ou data/raw_catalog.json.',
     );
   }
 
-  const parsed: unknown = JSON.parse(readFileSync(jsonPath, 'utf8'));
-  if (!Array.isArray(parsed)) {
-    throw new Error('data/raw_catalog.json doit contenir un tableau.');
-  }
-
-  return {
-    items: parsed.map((record: unknown) =>
-      normalizeRecord(asRecord(record, 'Entrée JSON')),
-    ),
-    source: 'data/raw_catalog.json',
-  };
+  return { items, source: sources.join(' et ') };
 }
 
 export function loadApiEnvironment(): void {

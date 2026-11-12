@@ -41,6 +41,7 @@ export class ChatInterface {
   private currentResult: CatalogSearchResponse | null = null;
   private currentSample: SampleRequest | null = null;
   private selectedMatch: CatalogMatch | null = null;
+  private pendingRefinementQuestion = '';
   private voicePrefix = '';
   private busy = false;
 
@@ -166,7 +167,7 @@ export class ChatInterface {
               <div class="refinements" id="refinements" hidden>
                 <p id="refinement-question"></p>
                 <div class="refinement-actions">
-                  <button type="button" data-application="Poudre à mélanger">Poudre à mélanger</button>
+                  <button type="button" data-application="Poudre à diluer">Poudre à diluer</button>
                   <button type="button" data-application="Prête à boire">Prête à boire</button>
                   <button class="refinement-skip" type="button" data-application="skip">Ignorer cette question</button>
                 </div>
@@ -310,7 +311,9 @@ export class ChatInterface {
     this.refinements.addEventListener('click', (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      const button = target.closest<HTMLButtonElement>('[data-application]');
+      const button = target.closest<HTMLButtonElement>(
+        '[data-application]:not([hidden])',
+      );
       if (!button?.dataset.application || !this.currentPrompt) return;
 
       const application = button.dataset.application;
@@ -373,9 +376,25 @@ export class ChatInterface {
     displayedText = prompt,
     skipQualification?: Qualification,
   ): Promise<void> {
-    const query = prompt.trim();
+    const previousQuestion =
+      this.pendingRefinementQuestion ||
+      this.currentResult?.qualification.followup_question?.trim();
+    const clarificationAnswer =
+      !skipQualification &&
+      displayedText === prompt &&
+      Boolean(previousQuestion);
+    const submittedText = prompt.trim();
+    const query =
+      clarificationAnswer && this.currentPrompt
+        ? `${this.currentPrompt}\nQuestion de suivi posée : ${previousQuestion}\nRéponse de l’utilisateur : ${submittedText}`
+        : submittedText;
     if (!query || this.busy) return;
 
+    if (this.input.value.trim() === submittedText) {
+      this.input.value = '';
+      this.input.style.height = 'auto';
+    }
+    this.pendingRefinementQuestion = '';
     this.currentPrompt = query;
     this.currentResult = null;
     this.addMessage('user', displayedText);
@@ -393,27 +412,28 @@ export class ChatInterface {
       const hasCandidates = this.renderMatches(this.currentResult);
       this.renderProgress(this.currentResult.qualification, hasCandidates);
       const followup = this.currentResult.qualification.followup_question;
-      const completeWithoutMatches =
-        this.currentResult.qualification.is_complete && !hasCandidates;
+      const matchSummaries = [
+        this.currentResult.bestMatch
+          ? `Meilleur choix — ${this.currentResult.bestMatch.name} · Réf. ${this.currentResult.bestMatch.ref_code}\n${this.currentResult.bestMatch.sensory_notes}`
+          : '',
+        this.currentResult.alternative
+          ? `Alternative — ${this.currentResult.alternative.name} · Réf. ${this.currentResult.alternative.ref_code}\n${this.currentResult.alternative.sensory_notes}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
       this.addMessage(
         'assistant',
-        completeWithoutMatches
-          ? 'Aucun arôme standard ne correspond exactement à toutes vos contraintes.'
+        followup && !hasCandidates
+          ? `Pour affiner la recherche, ${followup.charAt(0).toLowerCase()}${followup.slice(1)}`
           : followup ||
               (hasCandidates
-                ? 'J’ai trouvé deux pistes à explorer. Vous pouvez les comparer ou demander un échantillon.'
+                ? `J’ai trouvé ${this.currentResult.alternative ? 'deux pistes' : 'une piste'} à explorer. Vous pouvez les comparer ou demander un échantillon.\n\n${matchSummaries}`
                 : 'Je n’ai pas encore de correspondance exploitable. Essayez de préciser votre profil sensoriel.'),
       );
       this.renderRefinements(this.currentResult.qualification);
       this.setApiConnected();
-      if (completeWithoutMatches) {
-        this.expertText.value = this.buildSummary();
-        this.expertStatus.textContent =
-          'Récapitulatif prérempli : vous pouvez le partager avec l’équipe ADV.';
-        this.expertSummary.hidden = false;
-      } else {
-        this.expertSummary.hidden = true;
-      }
+      this.expertSummary.hidden = true;
     } catch (error) {
       const message = errorMessage(error);
       this.addMessage(
@@ -520,7 +540,7 @@ export class ChatInterface {
     if (!result.bestMatch) {
       this.matches.append(
         this.createNotice(
-          'Aucune suggestion exploitable pour le moment. Reformulez votre demande ou précisez une application.',
+          'Aucune piste pour le moment. Répondez à la question ci-dessus pour affiner la recherche.',
           'empty',
         ),
       );
@@ -592,6 +612,33 @@ export class ChatInterface {
     requestButton.addEventListener('click', () => this.openSampleDialog(match));
 
     card.append(header, title, reference, details, metadata, requestButton);
+    if (isBest) {
+      const feedback = document.createElement('div');
+      feedback.className = 'match-feedback';
+      const acceptButton = document.createElement('button');
+      acceptButton.type = 'button';
+      acceptButton.textContent = 'Ce résultat me convient';
+      acceptButton.addEventListener('click', () => {
+        this.refinements.hidden = true;
+        this.addMessage(
+          'assistant',
+          'Parfait, cette piste vous convient. Vous pouvez demander un échantillon ou continuer à affiner.',
+        );
+      });
+
+      const refineButton = document.createElement('button');
+      refineButton.type = 'button';
+      refineButton.textContent = 'Affiner ce résultat';
+      refineButton.addEventListener('click', () => {
+        this.pendingRefinementQuestion =
+          'Qu’aimeriez-vous ajuster dans cette piste : la note, la douceur, l’intensité ou un autre aspect ?';
+        this.refinements.hidden = true;
+        this.addMessage('assistant', this.pendingRefinementQuestion);
+        this.input.focus();
+      });
+      feedback.append(acceptButton, refineButton);
+      card.append(feedback);
+    }
     return card;
   }
 
@@ -601,6 +648,19 @@ export class ChatInterface {
       this.refinements.hidden = true;
       return;
     }
+    const beverageFormatQuestion =
+      qualification.category === 'Flavor' &&
+      /prête à boire|poudre à diluer/i.test(question);
+    this.refinements
+      .querySelectorAll<HTMLButtonElement>(
+        '[data-application]:not(.refinement-skip)',
+      )
+      .forEach((button) => {
+        button.hidden = !beverageFormatQuestion;
+      });
+    const skipButton =
+      this.refinements.querySelector<HTMLButtonElement>('.refinement-skip');
+    if (skipButton) skipButton.hidden = beverageFormatQuestion;
     this.refinementQuestion.textContent = question;
     this.refinements.hidden = false;
   }

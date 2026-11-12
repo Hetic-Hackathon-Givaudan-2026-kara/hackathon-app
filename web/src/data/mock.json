@@ -1,0 +1,113 @@
+{
+  "scenarios": [
+    {
+      "id": "protein-drink",
+      "title": "Arôme fruits rouges · boisson protéinée",
+      "keywords": ["protéinée", "protéine", "sport", "fruits rouges", "poudre"],
+      "application": "Boisson protéinée en poudre",
+      "profil_olfactif": "Fruits rouges frais, naturel et peu sucré",
+      "followup": "Quel volume prévisionnel souhaitez-vous pour ce lancement ?",
+      "recommendations": [
+        {
+          "id": "FR-2841",
+          "name": "Fruits rouges naturels",
+          "justification": "Un équilibre de framboise et de fraise, pensé pour rester frais dans une base protéinée.",
+          "price": "18,40",
+          "minimumVolume": "25"
+        },
+        {
+          "id": "FR-1962",
+          "name": "Framboise acidulée",
+          "justification": "Une note franche et vive qui apporte du relief sans renforcer la sucrosité.",
+          "price": "21,80",
+          "minimumVolume": "20"
+        },
+        {
+          "id": "FR-3107",
+          "name": "Baies sauvages",
+          "justification": "Un profil rond de mûre et de myrtille pour une signature fruitée plus gourmande.",
+          "price": "16,90",
+          "minimumVolume": "30"
+        }
+      ]
+    },
+    {
+      "id": "premium-soap",
+      "title": "Savon premium · agrumes & thé blanc",
+      "keywords": [
+        "savon",
+        "savons",
+        "savonnerie",
+        "agrume",
+        "agrumes",
+        "premium"
+      ],
+      "application": "Savon solide premium",
+      "profil_olfactif": "Agrumes lumineux, thé blanc et fond doux",
+      "followup": "Quel volume de production envisagez-vous pour cette gamme ?",
+      "recommendations": [
+        {
+          "id": "FG-5108",
+          "name": "Thé blanc & bergamote",
+          "justification": "Une ouverture hespéridée élégante équilibrée par la douceur délicate du thé blanc.",
+          "price": "32,50",
+          "minimumVolume": "10"
+        },
+        {
+          "id": "FG-4230",
+          "name": "Néroli lumineux",
+          "justification": "Une fleur d’oranger raffinée et propre qui accompagne bien les bases lavantes premium.",
+          "price": "29,90",
+          "minimumVolume": "15"
+        },
+        {
+          "id": "FG-6074",
+          "name": "Zeste de mandarine",
+          "justification": "Une fraîcheur zestée et pétillante avec une facette douce en cœur.",
+          "price": "24,60",
+          "minimumVolume": "20"
+        }
+      ]
+    },
+    {
+      "id": "legacy-perfume",
+      "title": "Fragrance · proche d’un ancien lancement",
+      "keywords": [
+        "parfum",
+        "fragrance",
+        "ancien lancement",
+        "ancien parfum",
+        "dernière commande",
+        "derniere commande",
+        "floral",
+        "boisé"
+      ],
+      "application": "Parfum fin",
+      "profil_olfactif": "Floral boisé, élégant et légèrement ambré",
+      "followup": "Quel volume ciblez-vous pour cette nouvelle édition ?",
+      "recommendations": [
+        {
+          "id": "PF-7752",
+          "name": "Iris boisé ambré",
+          "justification": "Un iris poudré posé sur des bois doux, dans l’esprit d’une fragrance signature intemporelle.",
+          "price": "68,00",
+          "minimumVolume": "5"
+        },
+        {
+          "id": "PF-6419",
+          "name": "Rose & santal",
+          "justification": "Une rose veloutée et un santal crémeux pour retrouver une élégance familière.",
+          "price": "74,50",
+          "minimumVolume": "5"
+        },
+        {
+          "id": "PF-8093",
+          "name": "Fleur blanche boisée",
+          "justification": "Un bouquet floral lumineux soutenu par un fond boisé discret et enveloppant.",
+          "price": "61,20",
+          "minimumVolume": "10"
+        }
+      ]
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import type { Pool } from 'pg';
 import {
   generateEmbedding,
   qualifyIntent,
+  suggestCatalogRefinement,
 } from '../services/ollama.service.js';
 import type { IntentQualification } from '../services/ollama.service.js';
 
@@ -22,6 +23,7 @@ interface CatalogMatch extends Omit<CatalogRow, 'similarity'> {
 }
 
 const categories = ['flavors', 'fragrances'];
+const MINIMUM_ALTERNATIVE_SIMILARITY = 0.62;
 
 export function createCatalogRouter(db: Pool) {
   const router = Router();
@@ -67,19 +69,39 @@ export function createCatalogRouter(db: Pool) {
     }
 
     if (!qualification.is_complete) {
+      if (
+        qualification.followup_question &&
+        wasQuestionAlreadyAsked(query, qualification.followup_question)
+      ) {
+        qualification.followup_question = await suggestCatalogRefinement(
+          query,
+          qualification,
+        );
+      }
       response.json({ qualification, bestMatch: null, alternative: null });
       return;
     }
 
+    const userContext = query
+      .split(/\r?\n/u)
+      .filter((line) => !line.startsWith('Question de suivi posée : '))
+      .map((line) => line.replace(/^Réponse de l’utilisateur : /u, ''))
+      .join('\n');
     const searchText = [
       qualification.category,
-      query,
+      userContext,
       qualification.application,
       ...qualification.profile_tags,
     ]
       .filter(Boolean)
       .join('\n');
     const embedding = await generateEmbedding(searchText);
+    if (embedding.every((value) => value === 0)) {
+      throw new Error(
+        'Ollama est indisponible : impossible de rechercher dans le catalogue.',
+      );
+    }
+
     const applicationKeywords =
       qualification.application.match(/[\p{L}\p{N}]{4,}/gu) ?? [];
     const { rows } = await db.query<CatalogRow>(
@@ -92,6 +114,20 @@ export function createCatalogRouter(db: Pool) {
                 ) AS application_match
            FROM catalog_items
           WHERE embedding IS NOT NULL
+            AND (
+              (
+                $4 = 'flavors'
+                AND application_type IN ('Prête à boire', 'Poudre à mélanger')
+                AND ref_code NOT LIKE 'fragrance-%'
+              )
+              OR (
+                $4 = 'fragrances'
+                AND (
+                  application_type NOT IN ('Prête à boire', 'Poudre à mélanger')
+                  OR ref_code LIKE 'fragrance-%'
+                )
+              )
+            )
        )
        SELECT id, ref_code, name, category, application_type, sensory_notes,
               is_natural,
@@ -100,8 +136,7 @@ export function createCatalogRouter(db: Pool) {
         WHERE NULLIF($2, '') IS NULL
            OR application_match
            OR (
-             category ILIKE 'Flavor'
-             AND ($4::text IS NULL OR $4 = 'flavors')
+             $4 = 'flavors'
              AND NOT EXISTS (
                SELECT 1 FROM catalog_candidates WHERE application_match
              )
@@ -116,21 +151,52 @@ export function createCatalogRouter(db: Pool) {
       ],
     );
 
-    const matches: CatalogMatch[] = embedding.every((value) => value === 0)
-      ? []
-      : rows.map(({ similarity, ...item }) => ({
-          ...item,
-          similarity: Number.isFinite(similarity) ? similarity : null,
-        }));
+    const matches: CatalogMatch[] = rows.map(({ similarity, ...item }) => ({
+      ...item,
+      similarity: Number.isFinite(similarity) ? similarity : null,
+    }));
+    const alternativeCandidate = matches[1];
+    const alternative =
+      alternativeCandidate?.similarity !== null &&
+      alternativeCandidate?.similarity !== undefined &&
+      alternativeCandidate.similarity >= MINIMUM_ALTERNATIVE_SIMILARITY
+        ? alternativeCandidate
+        : null;
+
+    if (matches.length === 0) {
+      qualification = {
+        ...qualification,
+        is_complete: false,
+        followup_question: await suggestCatalogRefinement(query, qualification),
+      };
+    }
 
     response.json({
       qualification,
       bestMatch: matches[0] ?? null,
-      alternative: matches[1] ?? null,
+      alternative,
     });
   });
 
   return router;
+}
+
+function wasQuestionAlreadyAsked(prompt: string, question: string): boolean {
+  const normalize = (value: string) =>
+    value
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .replace(/[?!.,]/gu, '')
+      .trim();
+  const previousQuestions =
+    prompt.match(/^Question de suivi posée : (.+)$/gmu) ?? [];
+  const normalizedQuestion = normalize(question);
+  return previousQuestions.some(
+    (previous) =>
+      normalize(previous.replace(/^Question de suivi posée : /u, '')) ===
+      normalizedQuestion,
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
