@@ -32,9 +32,9 @@ _Note : Assurez-vous que l'application Ollama tourne en arrière-plan sur votre 
    npm run dev -w web
    ```
 
-   Ouvrez `http://localhost:5173`. Le proxy utilise `http://api:3000` dans Compose. Pour utiliser l'API du même conteneur que Vite, définissez `API_PROXY_TARGET=http://localhost:3000`.
+   Ouvrez `http://localhost:5173`. Le proxy utilise `http://api:3000` dans Compose. Pour utiliser l'API du même conteneur que Vite, définissez `API_PROXY_TARGET=http://localhost:3000`. Le chat utilise l'API et Qwen par défaut; pour lancer explicitement la démonstration simulée, définissez `VITE_USE_MOCK=true`.
 
-4. Pour la recherche sémantique, Ollama doit être joignable depuis le conteneur API. Compose utilise `http://host.docker.internal:11434` par défaut; configurez Ollama sur l'hôte pour accepter les connexions depuis le conteneur, en limitant l'accès réseau à votre environnement de développement. Téléchargez les modèles requis là où Ollama tourne :
+4. Le chat utilise Qwen pour comprendre le besoin et Nomic pour la recherche sémantique. Ollama doit être joignable depuis le conteneur API. Compose utilise `http://host.docker.internal:11434` par défaut; configurez Ollama sur l'hôte pour accepter les connexions depuis le conteneur, en limitant l'accès réseau à votre environnement de développement. Téléchargez les modèles requis là où Ollama tourne :
 
    ```sh
    ollama pull qwen2.5:1.5b-instruct-q4_K_M

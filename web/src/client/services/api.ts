@@ -20,8 +20,8 @@ export interface Recommendation {
   id: string;
   name: string;
   justification: string;
-  price: string;
-  minimumVolume: string;
+  price: string | null;
+  minimumVolume: string | null;
 }
 
 export interface BriefMatchResponse {
@@ -53,6 +53,7 @@ const briefFields: Array<keyof LiveBrief> = [
 const scenarioList = mockData.scenarios as MockScenario[];
 
 interface SearchOptions {
+  category?: 'flavors' | 'fragrances';
   action?: 'skip';
   qualification?: Qualification;
 }
@@ -61,33 +62,54 @@ export async function submitBriefAndMatch(
   message: string,
   brief: LiveBrief,
   scenarioId: string | null,
-  requestedField: keyof LiveBrief | null,
 ): Promise<BriefMatchResponse> {
-  if (import.meta.env.VITE_USE_MOCK !== 'false') {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise<void>((resolve) => window.setTimeout(resolve, 400));
-    return mockBriefAndMatch(message, brief, scenarioId, requestedField);
+    return mockBriefAndMatch(message, brief, scenarioId);
   }
 
-  const updatedBrief = await request<LiveBrief>('/api/brief', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, brief }),
-  });
-  const match = await request<{
-    recommendations: Recommendation[];
-    assistantMessage: string;
-  }>('/api/match', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ brief: updatedBrief }),
-  });
+  const updatedBrief = { ...brief };
+  updateExplicitBriefFields(message, updatedBrief);
+  const query = [
+    message,
+    ...briefFields
+      .filter((field) => updatedBrief[field] !== null)
+      .map((field) => `${field}: ${updatedBrief[field]}`),
+  ].join('\n');
+  const category =
+    /\b(?:parfum|fragrance|savon|shampoing|cosmetique|cr[eè]me|lotion)\b/iu.test(
+      query,
+    )
+      ? 'fragrances'
+      : 'flavors';
+  const result = await searchCatalog(query, { category });
+  updatedBrief.application =
+    result.qualification.application || updatedBrief.application;
+  updatedBrief.profil_olfactif =
+    result.qualification.profile_tags.join(', ') ||
+    updatedBrief.profil_olfactif;
+  const candidates = [result.bestMatch, result.alternative].filter(
+    (match): match is NonNullable<typeof match> => match !== null,
+  );
+  const recommendations = candidates.map((match) => ({
+    id: match.ref_code,
+    name: match.name,
+    justification: match.sensory_notes,
+    price: null,
+    minimumVolume: null,
+  }));
+  const assistantMessage = result.qualification.followup_question
+    ? `Je comprends votre demande. Pour vous orienter vers une piste vraiment adaptée, ${result.qualification.followup_question.charAt(0).toLocaleLowerCase('fr')}${result.qualification.followup_question.slice(1)}`
+    : recommendations.length
+      ? `D’accord, je comprends : vous cherchez ${updatedBrief.profil_olfactif ?? 'un profil sensoriel à définir'} pour ${updatedBrief.application ?? 'votre application'}. J’ai trouvé ${recommendations.length === 1 ? 'une première piste' : 'quelques pistes'} à explorer. Le prix et le volume minimum seront à confirmer par Givaudan.`
+      : 'Je comprends votre besoin. Je ne trouve pas encore de piste suffisamment proche dans le catalogue disponible; vous pouvez me décrire le profil recherché avec vos propres mots.';
 
   return {
     brief: updatedBrief,
-    assistantMessage: match.assistantMessage,
-    recommendations: match.recommendations,
+    assistantMessage,
+    recommendations,
     scenarioId: scenarioId ?? 'api',
-    requestedField: nextBriefField(updatedBrief),
+    requestedField: null,
   };
 }
 
@@ -124,7 +146,6 @@ function mockBriefAndMatch(
   message: string,
   currentBrief: LiveBrief,
   currentScenarioId: string | null,
-  requestedField: keyof LiveBrief | null,
 ): BriefMatchResponse {
   const scenario =
     (currentScenarioId &&
@@ -141,28 +162,38 @@ function mockBriefAndMatch(
         contraintes: null,
       }
     : { ...currentBrief };
-  const fieldToUpdate = isNewBrief
-    ? inferField(message)
-    : (requestedField ?? nextBriefField(brief));
-
-  if (fieldToUpdate && brief[fieldToUpdate] === null) {
-    brief[fieldToUpdate] = inferValue(message, fieldToUpdate);
-  }
-
-  const nextField = nextBriefField(brief);
+  updateExplicitBriefFields(message, brief);
+  const notedDetails = explicitBriefSummary(message, brief);
   return {
     brief,
-    assistantMessage: nextField
-      ? followupFor(nextField, scenario)
-      : 'Merci, votre brief est complet. Voici trois références à explorer.',
+    assistantMessage: isNewBrief
+      ? `D’accord, je comprends : vous cherchez ${scenario.profil_olfactif.toLocaleLowerCase('fr')} pour ${scenario.application.toLocaleLowerCase('fr')}. Je vais partir de ce profil et regarder les pistes disponibles.${notedDetails ? ` J’ai aussi noté ${notedDetails}.` : ''} Voici déjà quelques propositions à explorer.`
+      : notedDetails
+        ? `Merci, je le prends en compte : ${notedDetails}. Ça affine bien la recherche. Voici les pistes qui correspondent le mieux à votre demande.`
+        : 'Je garde votre besoin en tête et je vous propose les pistes les plus proches. Vous pouvez me donner d’autres détails naturellement, si vous le souhaitez.',
     recommendations: scenario.recommendations,
     scenarioId: scenario.id,
-    requestedField: nextField,
+    requestedField: null,
   };
 }
 
 function findScenario(message: string): MockScenario {
   const normalizedMessage = message.toLocaleLowerCase('fr');
+  const mentionsCitrus =
+    /citron|citrus|agrumes?|zeste|bergamote|yuzu|pamplemousse|orange/u.test(
+      normalizedMessage,
+    );
+  const mentionsProteinDrink = /boisson|protéin|poudre|sport/u.test(
+    normalizedMessage,
+  );
+
+  if (mentionsCitrus && mentionsProteinDrink) {
+    const citrusScenario = scenarioList.find(
+      (scenario) => scenario.id === 'citrus-protein-drink',
+    );
+    if (citrusScenario) return citrusScenario;
+  }
+
   return (
     scenarioList.find((scenario) =>
       scenario.keywords.some((keyword) =>
@@ -172,48 +203,85 @@ function findScenario(message: string): MockScenario {
   );
 }
 
-function nextBriefField(brief: LiveBrief): keyof LiveBrief | null {
-  return briefFields.find((field) => brief[field] === null) ?? null;
+function explicitBriefSummary(message: string, brief: LiveBrief): string {
+  const normalizedMessage = message.toLocaleLowerCase('fr');
+  const details: string[] = [];
+
+  if (/\d[\d\s.,]*\s?(?:kg|tonnes?|litres?)\b/i.test(normalizedMessage)) {
+    if (brief.volume) details.push(`un volume de ${brief.volume}`);
+  }
+  if (/€|euros?|prix|budget/i.test(normalizedMessage) && brief.prix_cible) {
+    details.push(`un prix cible de ${brief.prix_cible}`);
+  }
+  if (
+    /allerg|sans\s+(?:gluten|lactose|arachide|soja|oeufs?)/i.test(
+      normalizedMessage,
+    ) &&
+    brief.allergenes
+  ) {
+    details.push(brief.allergenes);
+  }
+  if (
+    /naturel|bio|végét|veget|sans sucre|contraint|certifi/i.test(
+      normalizedMessage,
+    ) &&
+    brief.contraintes
+  ) {
+    details.push(`la contrainte « ${brief.contraintes} »`);
+  }
+
+  return details.join(', ');
 }
 
-function inferField(message: string): keyof LiveBrief | null {
+function updateExplicitBriefFields(message: string, brief: LiveBrief): void {
   const normalizedMessage = message.toLocaleLowerCase('fr');
-  if (
-    /\d/.test(normalizedMessage) &&
-    /\b(kg|tonne|tonnes|litre|litres)\b/.test(normalizedMessage)
-  ) {
-    return 'volume';
-  }
-  if (/€|euros?|prix|budget/.test(normalizedMessage)) return 'prix_cible';
-  if (
-    /allerg|sans (?:gluten|lactose|arachide)|aucun allerg/.test(
-      normalizedMessage,
-    )
-  ) {
-    return 'allergenes';
-  }
-  if (/naturel|bio|végét|veget|sans sucre|contraint/.test(normalizedMessage)) {
-    return 'contraintes';
-  }
-  return null;
+  const fields: Array<'volume' | 'prix_cible' | 'allergenes' | 'contraintes'> =
+    ['volume', 'prix_cible', 'allergenes', 'contraintes'];
+  const fieldMatches: Record<
+    'volume' | 'prix_cible' | 'allergenes' | 'contraintes',
+    RegExp
+  > = {
+    volume: /\d[\d\s.,]*\s?(?:kg|tonnes?|litres?)\b/i,
+    prix_cible: /€|euros?|prix|budget/i,
+    allergenes: /allerg|sans\s+(?:gluten|lactose|arachide|soja|oeufs?)/i,
+    contraintes:
+      /naturel|bio(?:logique)?|végét|veget|sans sucre|contraint|certifi/i,
+  };
+
+  fields.forEach((field) => {
+    if (fieldMatches[field].test(normalizedMessage)) {
+      brief[field] = inferValue(message, field);
+    }
+  });
 }
 
 function inferValue(message: string, field: keyof LiveBrief): string {
   const trimmedMessage = message.trim();
-  const amount = trimmedMessage.match(
-    /\d[\d\s.,]*(?:\s?(?:kg|tonnes?|litres?|€|euros?))?/i,
-  );
   switch (field) {
     case 'volume':
-      return amount?.[0] ?? trimmedMessage;
+      return (
+        trimmedMessage.match(/\d[\d\s.,]*\s?(?:kg|tonnes?|litres?)\b/i)?.[0] ??
+        trimmedMessage
+      );
     case 'prix_cible':
-      return amount?.[0] ?? trimmedMessage;
-    case 'allergenes':
-      return /(?:sans (?:allergènes?|allergenes?)|aucun allergène|aucune allergène)/i.test(
-        trimmedMessage,
-      )
-        ? 'Aucun allergène déclaré'
+      return (
+        trimmedMessage.match(
+          /(?:prix|budget)(?:\s+cible)?\s*(?:de|à|:)?\s*\d[\d\s.,]*(?:\s*(?:€|euros?)(?:\s*\/\s*kg)?)?/i,
+        )?.[0] ??
+        trimmedMessage.match(
+          /\d[\d\s.,]*\s*(?:€|euros?)(?:\s*\/\s*kg)?/i,
+        )?.[0] ??
+        trimmedMessage
+      );
+    case 'allergenes': {
+      if (/aucun(?:e)? allergène|sans allergènes?/i.test(trimmedMessage)) {
+        return 'Aucun allergène déclaré';
+      }
+      const excludedAllergen = trimmedMessage.match(/sans\s+([^,.;!?]+)/i)?.[1];
+      return excludedAllergen
+        ? `Sans ${excludedAllergen.trim()}`
         : trimmedMessage;
+    }
     case 'contraintes': {
       const tags = [
         /naturel(?:le)?/i,
@@ -229,23 +297,6 @@ function inferValue(message: string, field: keyof LiveBrief): string {
     case 'application':
     case 'profil_olfactif':
       return trimmedMessage;
-  }
-}
-
-function followupFor(field: keyof LiveBrief, scenario: MockScenario): string {
-  switch (field) {
-    case 'volume':
-      return scenario.followup;
-    case 'prix_cible':
-      return 'Avez-vous un prix cible indicatif par kilogramme ?';
-    case 'allergenes':
-      return 'Y a-t-il des allergènes à exclure de la formule ?';
-    case 'contraintes':
-      return 'Avez-vous d’autres contraintes (naturel, certification ou procédé) ?';
-    case 'application':
-      return 'Dans quelle application ce profil sera-t-il utilisé ?';
-    case 'profil_olfactif':
-      return 'Quelles notes souhaitez-vous retrouver dans ce profil ?';
   }
 }
 

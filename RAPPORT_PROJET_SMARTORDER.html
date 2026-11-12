@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartOrder · Rapport de Présentation Projet</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 16mm 18mm;
+      }
+      :root {
+        --primary: #1e3a8a;
+        --primary-light: #eff6ff;
+        --secondary: #0d9488;
+        --text: #1f2937;
+        --text-muted: #6b7280;
+        --border: #e5e7eb;
+        --card-bg: #f9fafb;
+        --badge-flavor: #dbeafe;
+        --badge-flavor-text: #1e40af;
+        --badge-fragrance: #fce7f3;
+        --badge-fragrance-text: #9d174d;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+          Arial, sans-serif;
+        color: var(--text);
+        line-height: 1.55;
+        background: #ffffff;
+        font-size: 13.5px;
+        padding: 24px;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      @media print {
+        body {
+          padding: 0;
+          max-width: 100%;
+          font-size: 12px;
+        }
+        .no-print {
+          display: none !important;
+        }
+        .page-break {
+          page-break-before: always;
+        }
+        .avoid-break {
+          page-break-inside: avoid;
+        }
+      }
+      .print-banner {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .print-btn {
+        background: #15803d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      header {
+        border-bottom: 2px solid var(--primary);
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+      }
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+      }
+      h1 {
+        font-size: 26px;
+        color: var(--primary);
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .badge-primary {
+        background: var(--primary-light);
+        color: var(--primary);
+      }
+      .badge-secondary {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 14px;
+        font-size: 12px;
+        background: var(--card-bg);
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+      }
+      .meta-item strong {
+        display: block;
+        color: var(--text-muted);
+        font-size: 10.5px;
+        text-transform: uppercase;
+      }
+      h2 {
+        font-size: 17px;
+        color: var(--primary);
+        border-left: 4px solid var(--secondary);
+        padding-left: 10px;
+        margin: 24px 0 12px 0;
+        font-weight: 700;
+      }
+      h3 {
+        font-size: 14px;
+        color: var(--text);
+        margin: 14px 0 8px 0;
+        font-weight: 600;
+      }
+      p {
+        margin-bottom: 10px;
+        text-align: justify;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 14px;
+      }
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px;
+      }
+      .card-title {
+        font-weight: 700;
+        font-size: 13.5px;
+        color: var(--primary);
+        margin-bottom: 6px;
+      }
+      /* Flow / Steps */
+      .flow-step {
+        display: flex;
+        margin-bottom: 10px;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px 12px;
+        align-items: center;
+      }
+      .flow-num {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 12px;
+        margin-right: 12px;
+        flex-shrink: 0;
+      }
+      .flow-body strong {
+        display: block;
+        color: var(--text);
+        font-size: 13px;
+      }
+      .flow-body span {
+        font-size: 11.5px;
+        color: var(--text-muted);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0;
+        font-size: 12px;
+      }
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 8px 10px;
+        text-align: left;
+      }
+      th {
+        background: #f3f4f6;
+        color: var(--text);
+        font-weight: 600;
+      }
+      tr:nth-child(even) {
+        background: #fafafa;
+      }
+      code {
+        font-family: Consolas, Monaco, 'Courier New', monospace;
+        font-size: 11px;
+        background: #f1f5f9;
+        padding: 2px 4px;
+        border-radius: 4px;
+        color: #0f172a;
+      }
+      pre {
+        background: #0f172a;
+        color: #f8fafc;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        overflow-x: auto;
+        margin: 10px 0;
+      }
+      .highlight-box {
+        border-left: 3px solid #f59e0b;
+        background: #fffbeb;
+        padding: 10px 14px;
+        border-radius: 0 6px 6px 0;
+        margin: 12px 0;
+        font-size: 12px;
+      }
+      footer {
+        margin-top: 32px;
+        border-top: 1px solid var(--border);
+        padding-top: 12px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="print-banner no-print">
+      <div>
+        <strong>📄 Export PDF prêt :</strong> Cliquez sur le bouton ci-contre ou
+        appuyez sur <code>Ctrl + P</code> (puis « Enregistrer au format PDF »).
+      </div>
+      <button class="print-btn" onclick="window.print()">
+        Imprimer en PDF
+      </button>
+    </div>
+
+    <header>
+      <div class="header-top">
+        <div>
+          <h1>SmartOrder · Givaudan</h1>
+          <p
+            style="color: var(--text-muted); font-size: 13px; margin: 4px 0 0 0"
+          >
+            Plateforme de commande intelligente B2B pour arômes et fragrances
+          </p>
+        </div>
+        <div>
+          <span class="badge badge-primary">Challenge AI 2026</span>
+          <span class="badge badge-secondary">Équipe 09 · Witchers</span>
+        </div>
+      </div>
+      <div class="meta-grid">
+        <div class="meta-item">
+          <strong>Problématique</strong>
+          02 · Commande Intelligente
+        </div>
+        <div class="meta-item">
+          <strong>Architecture</strong>
+          Monolithe Dev Container (Express + Vite)
+        </div>
+        <div class="meta-item">
+          <strong>Moteur RAG & IA</strong>
+          Ollama (Qwen 2.5 + Nomic Embed + pgvector)
+        </div>
+      </div>
+    </header>
+
+    <section class="avoid-break">
+      <h2>1. Contexte & Problématique Métier</h2>
+      <p>
+        Les catalogues industriels de Givaudan comptent des dizaines de milliers
+        de références chimiques et olfactives complexes. Les clients B2B (chefs
+        de projet R&D ou acheteurs de PME agroalimentaires et cosmétiques) ne
+        maîtrisent pas toujours ces nomenclatures techniques internes.
+      </p>
+      <p>
+        <strong>Objectif SmartOrder :</strong> Permettre à un client d'exprimer
+        son besoin en langage naturel (texte ou voix), d'obtenir une
+        qualification interactive bienveillante, d'accéder aux meilleures
+        correspondances du catalogue grâce à une recherche vectorielle
+        sémantique, et de commander immédiatement des échantillons physiques
+        pour test en laboratoire.
+      </p>
+    </section>
+
+    <section class="avoid-break">
+      <h2>2. Architecture Technique (ADR 0001)</h2>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🖥️ Front-End & Expérience Client</div>
+          <p>
+            <strong>Vite + TypeScript :</strong> Interface réactive monopage
+            sans dépendance lourde.
+          </p>
+          <p>
+            <strong>Web Speech API :</strong> Reconnaissance vocale native pour
+            dicter son brief au micro.
+          </p>
+          <p>
+            <strong>Live Brief :</strong> Affichage dynamique du brief et suivi
+            d'échantillons en temps réel.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title">⚙️ Back-End & Services IA</div>
+          <p>
+            <strong>Express / Node.js (TypeScript) :</strong> API REST
+            documentée sous Swagger UI (<code>/api-docs</code>).
+          </p>
+          <p>
+            <strong>PostgreSQL 17 + pgvector :</strong> Base de données unifiée
+            relationnelle et vectorielle (index <code>ivfflat</code>).
+          </p>
+          <p>
+            <strong>Ollama (Local) :</strong> <code>qwen2.5</code> pour la
+            qualification et <code>nomic-embed-text</code> pour la
+            vectorisation.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-break">
+      <h2>3. Workflow de Bout en Bout (End-to-End)</h2>
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-body">
+          <strong>Capture du besoin (Texte ou Voix)</strong>
+          <span
+            >Le client saisit ou dicte son besoin (ex: « Je cherche une vanille
+            bourbon crémeuse pour boisson végétale »).</span
+          >
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-body">
+          <strong>Qualification d'intention (LLM Qwen 2.5)</strong>
+          <span
+            >Extraction structurée en JSON : Catégorie (Flavor/Fragrance),
+            Application cible, Tags sensoriels et statut de complétude.</span
+          >
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-body">
+          <strong>Boucle conversationnelle ciblée (si besoin)</strong>
+          <span
+            >Si une ambiguïté bloque une bonne recommandation, une question
+            courte est posée (avec option de passer).</span
+          >
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div class="flow-body">
+          <strong>Vectorisation dense (Nomic Embed Text)</strong>
+          <span
+            >Génération d'un vecteur de dimension 768 à partir de la synthèse
+            consolidée du brief.</span
+          >
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div class="flow-body">
+          <strong>Recherche sémantique & Re-ranking (pgvector)</strong>
+          <span
+            >Calcul cosinus avec bonus d'application (+15%) pour isoler le Top 1
+            (Best Match) et une alternative (>62%).</span
+          >
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">6</div>
+        <div class="flow-body">
+          <strong>Commande & Traçabilité Logistique</strong>
+          <span
+            >Validation de la demande d'échantillon avec workflow d'état :
+            <em>Demandé ➔ Préparé ➔ Expédié ➔ Reçu</em>.</span
+          >
+        </div>
+      </div>
+    </section>
+
+    <section class="avoid-break">
+      <h2>4. Schéma de Données (PostgreSQL 17 + pgvector)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Table</th>
+            <th>Colonnes principales</th>
+            <th>Spécificités & Rôle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>catalog_items</strong></td>
+            <td>
+              <code>id</code>, <code>ref_code</code>, <code>name</code>,
+              <code>category</code>, <code>application_type</code>,
+              <code>sensory_notes</code>, <code>is_natural</code>,
+              <code>embedding</code>
+            </td>
+            <td>
+              Catalogue Open Data (FEMA GRAS / FlavorDB2). Stocke l'embedding
+              vectoriel (768 dim.) avec index
+              <code>ivfflat (vector_cosine_ops)</code>.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>sample_requests</strong></td>
+            <td>
+              <code>id</code>, <code>reference_id</code> (FK),
+              <code>client_name</code>, <code>shipping_address</code>,
+              <code>quantity</code>, <code>status</code>
+            </td>
+            <td>
+              Gestion des demandes d'échantillons physiques de laboratoire avec
+              statuts logistiques.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>questions</strong></td>
+            <td>
+              <code>id</code>, <code>question</code>, <code>answer</code>,
+              <code>created_at</code>
+            </td>
+            <td>Persistance de l'historique conversationnel RAG.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="highlight-box">
+        <strong>Métrique de similarité cosinus :</strong>
+        <code>1 - (embedding <=> $1::vector)</code>. Un score de 1.0 indique une
+        similarité sémantique parfaite entre la demande et la référence.
+      </div>
+    </section>
+
+    <section class="avoid-break">
+      <h2>5. Typologie du Moteur RAG</h2>
+      <p>
+        L'application implémente un
+        <strong>RAG Hybride Conversationnel avec Pré-qualification</strong>
+        (distinct d'un RAG naïf) :
+      </p>
+      <ul style="margin-left: 20px; line-height: 1.6">
+        <li>
+          <strong>Pré-retrieval (Semantic Parsing) :</strong> Détection
+          automatique de la catégorie et isolation des contraintes
+          d'application.
+        </li>
+        <li>
+          <strong>Reformulation de requête :</strong> Le texte vectorisé combine
+          catégorie, application et descripteurs sensoriels normalisés.
+        </li>
+        <li>
+          <strong>Filtrage dur + pondération douce :</strong> Filtrage strict
+          SQL sur la catégorie et pénalité de 15% si l'application technique
+          n'est pas optimale.
+        </li>
+      </ul>
+    </section>
+
+    <section class="avoid-break">
+      <h2>6. Guide Technique & Commandes du Projet</h2>
+      <pre><code># Démarrage de l'API et du Front-end
+npm run dev
+
+# Ingestion et indexation vectorielle du catalogue
+npm run seed:catalog
+
+# Test rapide de recherche sémantique en ligne de commande
+npm run test:search -- "vanille crémeuse pour boisson"
+
+# Contrôles qualité stricts avant Pull Request (CI qualite)
+npm run lint && npm run format:check && npm run build</code></pre>
+    </section>
+
+    <footer>
+      <span>SmartOrder · Givaudan AI Challenge 2026</span>
+      <span>Dossier Technique & Soutenance</span>
+    </footer>
+  </body>
+</html>

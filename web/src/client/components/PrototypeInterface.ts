@@ -6,6 +6,36 @@ import {
 } from '../services/api';
 import { SpeechInput } from '../services/speech';
 
+const sampleStatuses = ['Demandé', 'Préparé', 'Expédié', 'Reçu'] as const;
+const sampleWorkflowStorageKey = 'smartorder.sample-workflow.v1';
+
+type SampleStatus = (typeof sampleStatuses)[number];
+
+interface SampleDraft {
+  id: string;
+  referenceCode: string;
+  referenceName: string;
+  quantity: number;
+  format: string;
+  shippingAddress: string;
+  internalReference: string;
+}
+
+interface SampleTracking extends SampleDraft {
+  status: SampleStatus;
+  requestedAt: string;
+}
+
+interface SampleWorkflow {
+  draft: SampleDraft | null;
+  tracking: SampleTracking[];
+}
+
+const emptySampleWorkflow = (): SampleWorkflow => ({
+  draft: null,
+  tracking: [],
+});
+
 const emptyBrief = (): LiveBrief => ({
   application: null,
   profil_olfactif: null,
@@ -34,10 +64,14 @@ export class PrototypeInterface {
   private readonly briefFields: HTMLElement;
   private readonly recommendations: HTMLElement;
   private readonly resultsPanel: HTMLElement;
+  private readonly orderForm: HTMLFormElement;
+  private readonly orderEmpty: HTMLElement;
+  private readonly orderFeedback: HTMLElement;
+  private readonly trackingRequests: HTMLElement;
   private readonly speech: SpeechInput;
   private brief = emptyBrief();
   private scenarioId: string | null = null;
-  private requestedField: keyof LiveBrief | null = null;
+  private sampleWorkflow = emptySampleWorkflow();
   private voicePrefix = '';
   private busy = false;
 
@@ -136,74 +170,57 @@ export class PrototypeInterface {
               </aside>
             </div>
 
-            <section class="sample-tracking" aria-label="Échantillon en cours">
-              <div class="tracking-copy">
-                <span class="tracking-eyebrow">Échantillon en cours</span>
-                <strong>Arôme fruits rouges · Réf. [CODE]</strong>
-                <div class="tracking-progress" aria-label="Demandé, préparé, expédié, reçu">
-                  <span class="is-complete"></span><span class="is-complete"></span><span class="is-complete"></span><span></span>
-                </div>
-                <div class="tracking-labels"><span>Demandé</span><span>Préparé</span><span>Expédié</span><span>Reçu</span></div>
-              </div>
-              <button type="button" class="tracking-button">Voir le suivi</button>
-            </section>
             <footer class="prototype-footer">Prototype · données fictives</footer>
           </div>
 
           <section class="order-view" data-page="order" hidden>
-            <div class="page-breadcrumb">
-              <button type="button" data-view="tracking" aria-label="Retour aux demandes">←</button>
-              <span>Mes demandes / Arôme fruits rouges</span>
-            </div>
             <header class="order-heading">
-              <div><span class="page-eyebrow">Commande</span><h1>Commander <span>[Nom de la référence 1]</span></h1></div>
-              <span class="order-status">Échantillon validé</span>
+              <div><span class="page-eyebrow">Demande d’échantillon</span><h1>Demander <span id="order-product-name">un échantillon</span></h1></div>
+              <span class="order-status">Brouillon</span>
             </header>
-            <div class="order-layout">
-              <section class="order-details-card" aria-labelledby="order-details-title">
-                <h2 id="order-details-title">Détails</h2>
-                <div class="order-detail-row">
-                  <span class="order-field-label">Référence</span>
-                  <strong>[Nom de la référence 1] · Réf. [CODE]</strong>
-                </div>
-                <div class="order-detail-row quantity-row">
-                  <div><span class="order-field-label">Quantité</span><strong><span id="order-quantity">[X]</span> kg</strong></div>
-                  <div class="quantity-control">
-                    <button type="button" data-quantity="-1" aria-label="Réduire la quantité">−</button>
-                    <span id="quantity-display">[X]</span>
-                    <button type="button" data-quantity="1" aria-label="Augmenter la quantité">+</button>
+            <p class="request-empty" id="order-empty">Choisissez « Demander un échantillon » dans les recommandations pour commencer une demande.</p>
+            <form id="order-form" hidden>
+              <div class="order-layout">
+                <section class="order-details-card" aria-labelledby="order-details-title">
+                  <h2 id="order-details-title">Détails de la demande</h2>
+                  <div class="order-detail-row">
+                    <span class="order-field-label">Référence</span>
+                    <strong id="order-reference">—</strong>
                   </div>
-                </div>
-                <div class="order-detail-row editable-row">
-                  <div><span class="order-field-label">Conditionnement</span><strong data-value="format">[Format proposé par la fiche]</strong></div>
-                  <button type="button" data-edit="format">Modifier</button>
-                </div>
-                <div class="order-detail-row editable-row">
-                  <div><span class="order-field-label">Livraison</span><strong data-value="address">[Adresse de l’entreprise]</strong></div>
-                  <button type="button" data-edit="address">Modifier</button>
-                </div>
-                <div class="order-detail-row editable-row">
-                  <div><span class="order-field-label">Référence interne (facultatif)</span><strong data-value="internal">Ex. : lancement printemps</strong></div>
-                  <button type="button" data-edit="internal">Modifier</button>
-                </div>
-              </section>
-              <aside class="order-summary">
-                <div>
-                  <span class="page-eyebrow">Récapitulatif</span>
-                  <h2>[Nom de la référence 1]</h2>
-                  <p class="summary-quantity"><span data-summary-quantity>[X]</span> kg · <span data-summary-format>[format]</span></p>
-                  <div class="price-confirmation">
-                    <strong>Prix et date de livraison</strong>
-                    <p>Confirmés par Givaudan avant validation définitive. Vous êtes notifié dès réception.</p>
+                  <label class="order-input-row">
+                    <span class="order-field-label">Quantité d’échantillons</span>
+                    <input name="quantity" type="number" min="1" step="1" value="1" required>
+                  </label>
+                  <label class="order-input-row">
+                    <span class="order-field-label">Conditionnement souhaité</span>
+                    <input name="format" placeholder="À préciser ou à confirmer">
+                  </label>
+                  <label class="order-input-row">
+                    <span class="order-field-label">Adresse de livraison</span>
+                    <textarea name="shippingAddress" rows="3" autocomplete="street-address" placeholder="Adresse complète" required></textarea>
+                  </label>
+                  <label class="order-input-row">
+                    <span class="order-field-label">Référence interne (facultatif)</span>
+                    <input name="internalReference" placeholder="Ex. : lancement printemps">
+                  </label>
+                </section>
+                <aside class="order-summary">
+                  <div>
+                    <span class="page-eyebrow">Récapitulatif</span>
+                    <h2 id="order-summary-name">un échantillon</h2>
+                    <p class="summary-quantity"><span data-summary-quantity>1</span> échantillon(s) · <span data-summary-format>À confirmer</span></p>
+                    <div class="price-confirmation">
+                      <strong>Demande enregistrée localement</strong>
+                      <p>La demande sera visible dans le suivi après son envoi.</p>
+                    </div>
                   </div>
-                </div>
-                <div class="summary-actions">
-                  <button class="place-order-button" type="button" data-action="place-order">➜&nbsp; Envoyer la commande</button>
-                  <button class="expert-link" type="button" data-action="expert">♙&nbsp; Une question ? Contacter un expert</button>
-                  <p class="order-feedback" id="order-feedback" role="status"></p>
-                </div>
-              </aside>
-            </div>
+                  <div class="summary-actions">
+                    <button class="place-order-button" type="submit">➜&nbsp; Envoyer la commande</button>
+                    <p class="order-feedback" id="order-feedback" role="status"></p>
+                  </div>
+                </aside>
+              </div>
+            </form>
           </section>
 
           <section class="tracking-view" data-page="tracking" hidden>
@@ -213,44 +230,9 @@ export class PrototypeInterface {
               <div class="tracking-filters" role="group" aria-label="Filtrer les demandes">
                 <button class="is-selected" type="button" data-filter="all">Tout</button>
                 <button type="button" data-filter="samples">Échantillons</button>
-                <button type="button" data-filter="orders">Commandes</button>
               </div>
             </header>
-            <div class="tracking-list">
-              <article class="request-card" data-request-type="orders">
-                <div class="request-card-heading">
-                  <div><span class="request-eyebrow">Commande · [N°]</span><h2>[Nom de la référence 1] · [X] kg</h2></div>
-                  <span class="order-status">Confirmée</span>
-                </div>
-                <ol class="request-timeline order-timeline">
-                  <li class="is-complete"><span class="timeline-dot">✓</span><strong>Envoyée</strong><small>[date] · reçue par Givaudan</small></li>
-                  <li class="is-complete"><span class="timeline-dot">✓</span><strong>Confirmée</strong><small>Prix et date confirmés</small></li>
-                  <li><span class="timeline-dot"></span><strong>Expédiée</strong><small>Numéro de suivi à venir</small></li>
-                  <li><span class="timeline-dot"></span><strong>Livrée</strong><small>Prévue le [date confirmée]</small></li>
-                </ol>
-                <div class="request-actions">
-                  <button class="contact-link" type="button" data-action="expert">♙&nbsp; Contacter mon interlocuteur</button>
-                  <button class="gesture-button" type="button" data-action="gesture">＋&nbsp; Recommander en un geste</button>
-                  <span class="tracking-action-status" id="tracking-action-status" role="status"></span>
-                </div>
-              </article>
-              <article class="request-card sample-request-card" data-request-type="samples">
-                <div class="request-card-heading">
-                  <div><span class="request-eyebrow">Échantillon</span><h2>[Nom de la référence 1]</h2></div>
-                  <span class="order-status">Reçu</span>
-                </div>
-                <ol class="request-timeline sample-timeline">
-                  <li class="is-complete"><span class="timeline-dot">✓</span><strong>Demandé</strong></li>
-                  <li class="is-complete"><span class="timeline-dot">✓</span><strong>Préparé</strong></li>
-                  <li class="is-complete"><span class="timeline-dot">✓</span><strong>Expédié</strong></li>
-                  <li class="is-complete"><span class="timeline-dot">✓</span><strong>Reçu</strong></li>
-                </ol>
-                <div class="request-actions">
-                  <button class="feedback-button" type="button" data-action="feedback">Donner mon avis</button>
-                  <span class="feedback-confirmation" id="feedback-confirmation" role="status"></span>
-                </div>
-              </article>
-            </div>
+            <div class="tracking-list" id="tracking-requests" aria-live="polite"></div>
           </section>
         </main>
       </div>
@@ -265,6 +247,10 @@ export class PrototypeInterface {
     this.resultsPanel = requiredElement(root, '#results-panel');
     this.briefFields = requiredElement(root, '#brief-fields');
     this.recommendations = requiredElement(root, '#recommendations');
+    this.orderForm = requiredElement(root, '#order-form');
+    this.orderEmpty = requiredElement(root, '#order-empty');
+    this.orderFeedback = requiredElement(root, '#order-feedback');
+    this.trackingRequests = requiredElement(root, '#tracking-requests');
     this.speech = new SpeechInput({
       onTranscript: (transcript) => {
         this.input.value = [this.voicePrefix, transcript]
@@ -279,6 +265,7 @@ export class PrototypeInterface {
       },
     });
     this.renderBrief(this.brief);
+    this.restoreSampleWorkflow();
     this.bindEvents();
   }
 
@@ -286,6 +273,14 @@ export class PrototypeInterface {
     this.form.addEventListener('submit', (event) => {
       event.preventDefault();
       void this.sendMessage(this.input.value);
+    });
+
+    this.orderForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      this.submitSampleRequest();
+    });
+    this.orderForm.addEventListener('input', () => {
+      this.updateSampleDraft();
     });
 
     this.input.addEventListener('keydown', (event) => {
@@ -334,28 +329,9 @@ export class PrototypeInterface {
         return;
       }
 
-      const quantityButton =
-        target.closest<HTMLButtonElement>('[data-quantity]');
-      if (quantityButton?.dataset.quantity) {
-        this.updateQuantity(Number(quantityButton.dataset.quantity));
-        return;
-      }
-
-      const editButton = target.closest<HTMLButtonElement>('[data-edit]');
-      if (editButton?.dataset.edit) {
-        this.editOrderField(editButton.dataset.edit);
-        return;
-      }
-
       const filterButton = target.closest<HTMLButtonElement>('[data-filter]');
       if (filterButton?.dataset.filter) {
         this.filterRequests(filterButton.dataset.filter);
-        return;
-      }
-
-      const actionButton = target.closest<HTMLButtonElement>('[data-action]');
-      if (actionButton?.dataset.action) {
-        this.handlePageAction(actionButton.dataset.action);
         return;
       }
 
@@ -375,10 +351,10 @@ export class PrototypeInterface {
 
       const sampleButton = target.closest<HTMLButtonElement>('[data-sample]');
       if (sampleButton?.dataset.sample) {
-        this.appendMessage(
-          'assistant',
-          `Votre demande d’échantillon pour ${sampleButton.dataset.sample} est prête à être transmise à l’équipe Givaudan.`,
-        );
+        const referenceName = sampleButton.dataset.sampleName;
+        if (referenceName) {
+          this.createSampleDraft(sampleButton.dataset.sample, referenceName);
+        }
         return;
       }
 
@@ -411,10 +387,9 @@ export class PrototypeInterface {
         message,
         this.brief,
         this.scenarioId,
-        this.requestedField,
       );
       this.updateFromResponse(response);
-      this.appendMessage('assistant', response.assistantMessage);
+      this.appendAssistantResponse(response);
     } catch (error) {
       this.appendMessage(
         'assistant',
@@ -428,10 +403,10 @@ export class PrototypeInterface {
   private updateFromResponse(response: BriefMatchResponse): void {
     this.brief = response.brief;
     this.scenarioId = response.scenarioId;
-    this.requestedField = response.requestedField;
     this.renderBrief(response.brief);
     this.renderRecommendations(response.recommendations);
     this.resultsPanel.hidden = false;
+    this.root.querySelector('.prototype-main')?.classList.add('has-results');
     this.root.querySelector('.active-workspace')?.classList.add('has-results');
     this.root.querySelector('.welcome')?.classList.add('has-results');
   }
@@ -453,6 +428,21 @@ export class PrototypeInterface {
 
   private renderRecommendations(items: Recommendation[]): void {
     this.recommendations.replaceChildren();
+    const count = this.resultsPanel.querySelector('.recommendation-count');
+    if (count) {
+      count.textContent =
+        items.length === 1 ? '1 référence' : `${items.length} références`;
+    }
+
+    if (items.length === 0) {
+      const emptyState = document.createElement('p');
+      emptyState.className = 'recommendation-empty';
+      emptyState.textContent =
+        'Aucune référence proche trouvée. Vous pouvez préciser votre application ou votre profil.';
+      this.recommendations.append(emptyState);
+      return;
+    }
+
     items.forEach((item, index) => {
       const card = document.createElement('article');
       card.className = 'recommendation';
@@ -473,8 +463,14 @@ export class PrototypeInterface {
       const details = document.createElement('div');
       details.className = 'recommendation-details';
       details.append(
-        detail('Prix indicatif', `${item.price} €/kg`),
-        detail('Volume minimum', `${item.minimumVolume} kg`),
+        detail(
+          'Prix indicatif',
+          item.price ? `${item.price} €/kg` : 'À confirmer',
+        ),
+        detail(
+          'Volume minimum',
+          item.minimumVolume ? `${item.minimumVolume} kg` : 'À confirmer',
+        ),
       );
 
       const actions = document.createElement('div');
@@ -485,12 +481,63 @@ export class PrototypeInterface {
       detailButton.textContent = 'Voir la fiche';
       const sampleButton = document.createElement('button');
       sampleButton.type = 'button';
-      sampleButton.dataset.sample = item.name;
+      sampleButton.dataset.sample = item.id;
+      sampleButton.dataset.sampleName = item.name;
       sampleButton.textContent = 'Demander un échantillon';
       actions.append(detailButton, sampleButton);
       card.append(top, title, justification, details, actions);
       this.recommendations.append(card);
     });
+  }
+
+  private appendAssistantResponse(response: BriefMatchResponse): void {
+    const message = document.createElement('article');
+    message.className = 'conversation-message assistant-message';
+    const paragraph = document.createElement('p');
+    paragraph.textContent = response.assistantMessage;
+    message.append(paragraph);
+
+    if (response.recommendations.length > 0) {
+      message.classList.add('has-recommendations');
+      const list = document.createElement('div');
+      list.className = 'chat-recommendations';
+      list.setAttribute('aria-label', 'Propositions de références');
+
+      response.recommendations.forEach((item) => {
+        const card = document.createElement('article');
+        card.className = 'chat-recommendation';
+        const heading = document.createElement('div');
+        heading.className = 'chat-recommendation-heading';
+        const title = document.createElement('strong');
+        title.textContent = item.name;
+        const reference = document.createElement('span');
+        reference.textContent = `Réf. ${item.id}`;
+        heading.append(title, reference);
+
+        const justification = document.createElement('p');
+        justification.className = 'sr-only';
+        justification.textContent = item.justification;
+
+        const footer = document.createElement('div');
+        footer.className = 'chat-recommendation-footer';
+        const price = document.createElement('span');
+        price.textContent = item.price
+          ? `${item.price} €/kg`
+          : 'Prix à confirmer';
+        const detailButton = document.createElement('button');
+        detailButton.type = 'button';
+        detailButton.dataset.details = item.id;
+        detailButton.textContent = 'Voir la fiche';
+        footer.append(price, detailButton);
+        card.append(heading, justification, footer);
+        list.append(card);
+      });
+
+      message.append(list);
+    }
+
+    this.conversation.append(message);
+    this.scrollConversationToEnd();
   }
 
   private appendMessage(role: 'assistant' | 'user', text: string): void {
@@ -500,7 +547,18 @@ export class PrototypeInterface {
     paragraph.textContent = text;
     message.append(paragraph);
     this.conversation.append(message);
-    message.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    this.scrollConversationToEnd();
+  }
+
+  private scrollConversationToEnd(): void {
+    requestAnimationFrame(() => {
+      if (this.conversation.scrollHeight > this.conversation.clientHeight) {
+        this.conversation.scrollTo({
+          top: this.conversation.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    });
   }
 
   private setBusy(busy: boolean): void {
@@ -529,13 +587,13 @@ export class PrototypeInterface {
     if (this.busy) return;
     this.brief = emptyBrief();
     this.scenarioId = null;
-    this.requestedField = null;
     this.conversation.replaceChildren();
     this.conversation.innerHTML =
       '<article class="conversation-message assistant-message"><p>Bonjour Julien ! Décrivez votre produit et je vous proposerai les références adaptées.</p></article>';
     this.renderBrief(this.brief);
     this.recommendations.replaceChildren();
     this.resultsPanel.hidden = true;
+    this.root.querySelector('.prototype-main')?.classList.remove('has-results');
     this.root
       .querySelector('.active-workspace')
       ?.classList.remove('has-results');
@@ -563,58 +621,8 @@ export class PrototypeInterface {
             : link.dataset.view === page;
         link.classList.toggle('is-active', isActive);
       });
-    if (page === 'order') this.updateQuantity(0);
-  }
-
-  private updateQuantity(delta: number): void {
-    const quantity = this.root.querySelector<HTMLElement>('#order-quantity');
-    const display = this.root.querySelector<HTMLElement>('#quantity-display');
-    const summary = this.root.querySelector<HTMLElement>(
-      '[data-summary-quantity]',
-    );
-    if (!quantity || !display || !summary) return;
-    let value = Number(quantity.textContent);
-    if (!Number.isFinite(value)) value = 0;
-    if (delta === 0 && !Number.isFinite(Number(quantity.textContent))) {
-      quantity.textContent = '[X]';
-      display.textContent = '[X]';
-      summary.textContent = '[X]';
-      return;
-    }
-    value = Math.max(1, value + delta);
-    const formatted =
-      quantity.textContent === '[X]' && delta === 0 ? '[X]' : String(value);
-    quantity.textContent = formatted;
-    display.textContent = formatted;
-    summary.textContent = formatted;
-  }
-
-  private editOrderField(field: string): void {
-    const value = this.root.querySelector<HTMLElement>(
-      `[data-value="${field}"]`,
-    );
-    if (!value) return;
-    const labels: Record<string, string> = {
-      format: 'Format de conditionnement',
-      address: 'Adresse de livraison',
-      internal: 'Référence interne',
-    };
-    const answer = window.prompt(
-      `Modifier : ${labels[field] ?? field}`,
-      value.textContent === '[Format proposé par la fiche]' ||
-        value.textContent === '[Adresse de l’entreprise]' ||
-        value.textContent === 'Ex. : lancement printemps'
-        ? ''
-        : (value.textContent ?? ''),
-    );
-    if (answer === null || !answer.trim()) return;
-    value.textContent = answer.trim();
-    if (field === 'format') {
-      const summaryFormat = this.root.querySelector<HTMLElement>(
-        '[data-summary-format]',
-      );
-      if (summaryFormat) summaryFormat.textContent = answer.trim();
-    }
+    if (page === 'order') this.renderSampleDraft();
+    if (page === 'tracking') this.renderSampleTracking();
   }
 
   private filterRequests(filter: string): void {
@@ -633,32 +641,222 @@ export class PrototypeInterface {
       });
   }
 
-  private handlePageAction(action: string): void {
-    const feedback = this.root.querySelector<HTMLElement>('#order-feedback');
-    const trackingFeedback = this.root.querySelector<HTMLElement>(
-      '#tracking-action-status',
-    );
-    const sampleFeedback = this.root.querySelector<HTMLElement>(
-      '#feedback-confirmation',
-    );
-    if (action === 'place-order' && feedback) {
-      feedback.textContent =
-        'Votre commande est prête à être transmise. Prix et date seront confirmés par Givaudan.';
-    } else if (action === 'expert' && (feedback || trackingFeedback)) {
-      const activeFeedback = this.root.querySelector(
-        '.tracking-view:not([hidden])',
-      )
-        ? trackingFeedback
-        : feedback;
-      if (activeFeedback) {
-        activeFeedback.textContent =
-          'Votre interlocuteur Givaudan peut vous accompagner.';
-      }
-    } else if (action === 'gesture') {
-      this.showPage('order');
-    } else if (action === 'feedback' && sampleFeedback) {
-      sampleFeedback.textContent = 'Merci pour votre retour !';
+  private restoreSampleWorkflow(): void {
+    try {
+      this.sampleWorkflow = readSampleWorkflow();
+      this.renderSampleDraft();
+      this.renderSampleTracking();
+    } catch (error) {
+      this.appendMessage(
+        'assistant',
+        `Impossible de lire les demandes enregistrées localement. ${errorMessage(error)}`,
+      );
     }
+  }
+
+  private createSampleDraft(
+    referenceCode: string,
+    referenceName: string,
+  ): void {
+    const draft: SampleDraft = {
+      id: crypto.randomUUID(),
+      referenceCode,
+      referenceName,
+      quantity: 1,
+      format: '',
+      shippingAddress: '',
+      internalReference: '',
+    };
+    const nextWorkflow = { ...this.sampleWorkflow, draft };
+    try {
+      writeSampleWorkflow(nextWorkflow);
+      this.sampleWorkflow = nextWorkflow;
+      this.orderFeedback.textContent = '';
+      this.renderSampleDraft();
+      this.showPage('order');
+    } catch (error) {
+      this.appendMessage(
+        'assistant',
+        `Impossible d’enregistrer le brouillon sur cet appareil. ${errorMessage(error)}`,
+      );
+    }
+  }
+
+  private renderSampleDraft(): void {
+    const draft = this.sampleWorkflow.draft;
+    this.orderEmpty.hidden = draft !== null;
+    this.orderForm.hidden = draft === null;
+    if (!draft) return;
+
+    requiredElement<HTMLElement>(this.root, '#order-product-name').textContent =
+      draft.referenceName;
+    requiredElement<HTMLElement>(this.root, '#order-reference').textContent =
+      `${draft.referenceName} · Réf. ${draft.referenceCode}`;
+    requiredElement<HTMLElement>(this.root, '#order-summary-name').textContent =
+      draft.referenceName;
+    requiredElement<HTMLInputElement>(
+      this.orderForm,
+      '[name="quantity"]',
+    ).value = String(draft.quantity);
+    requiredElement<HTMLInputElement>(this.orderForm, '[name="format"]').value =
+      draft.format;
+    requiredElement<HTMLTextAreaElement>(
+      this.orderForm,
+      '[name="shippingAddress"]',
+    ).value = draft.shippingAddress;
+    requiredElement<HTMLInputElement>(
+      this.orderForm,
+      '[name="internalReference"]',
+    ).value = draft.internalReference;
+    requiredElement<HTMLElement>(
+      this.root,
+      '[data-summary-quantity]',
+    ).textContent = String(draft.quantity);
+    requiredElement<HTMLElement>(
+      this.root,
+      '[data-summary-format]',
+    ).textContent = draft.format || 'À confirmer';
+  }
+
+  private updateSampleDraft(): void {
+    const draft = this.sampleWorkflow.draft;
+    if (!draft) return;
+    const formData = new FormData(this.orderForm);
+    const quantity = Number(formData.get('quantity'));
+    const nextDraft: SampleDraft = {
+      ...draft,
+      quantity: Number.isInteger(quantity) && quantity > 0 ? quantity : 1,
+      format: String(formData.get('format') ?? '').trim(),
+      shippingAddress: String(formData.get('shippingAddress') ?? '').trim(),
+      internalReference: String(formData.get('internalReference') ?? '').trim(),
+    };
+    const nextWorkflow = { ...this.sampleWorkflow, draft: nextDraft };
+    try {
+      writeSampleWorkflow(nextWorkflow);
+      this.sampleWorkflow = nextWorkflow;
+      requiredElement<HTMLElement>(
+        this.root,
+        '[data-summary-quantity]',
+      ).textContent = String(nextDraft.quantity);
+      requiredElement<HTMLElement>(
+        this.root,
+        '[data-summary-format]',
+      ).textContent = nextDraft.format || 'À confirmer';
+      this.orderFeedback.textContent = '';
+    } catch (error) {
+      this.orderFeedback.textContent = `Impossible d’enregistrer les détails localement : ${errorMessage(error)}`;
+    }
+  }
+
+  private submitSampleRequest(): void {
+    const draft = this.sampleWorkflow.draft;
+    if (!draft) {
+      this.orderFeedback.textContent =
+        'Aucune demande en brouillon. Revenez à l’assistant pour choisir une référence.';
+      return;
+    }
+
+    const formData = new FormData(this.orderForm);
+    const quantity = Number(formData.get('quantity'));
+    const shippingAddress = String(
+      formData.get('shippingAddress') ?? '',
+    ).trim();
+    if (!Number.isInteger(quantity) || quantity < 1 || !shippingAddress) {
+      this.orderFeedback.textContent =
+        'Indiquez une quantité valide et une adresse de livraison.';
+      return;
+    }
+
+    const request: SampleTracking = {
+      ...draft,
+      quantity,
+      format: String(formData.get('format') ?? '').trim(),
+      shippingAddress,
+      internalReference: String(formData.get('internalReference') ?? '').trim(),
+      status: 'Demandé',
+      requestedAt: new Date().toISOString(),
+    };
+    const nextWorkflow: SampleWorkflow = {
+      draft: null,
+      tracking: [request, ...this.sampleWorkflow.tracking],
+    };
+    try {
+      writeSampleWorkflow(nextWorkflow);
+      this.sampleWorkflow = nextWorkflow;
+      this.orderFeedback.textContent = '';
+      this.renderSampleTracking();
+      this.appendMessage(
+        'assistant',
+        `Votre demande d’échantillon #${request.id} pour ${request.referenceName} est enregistrée dans le suivi avec le statut « Demandé ».`,
+      );
+      this.showPage('tracking');
+    } catch (error) {
+      this.orderFeedback.textContent = `Impossible d’enregistrer la demande localement : ${errorMessage(error)}`;
+    }
+  }
+
+  private renderSampleTracking(): void {
+    this.trackingRequests.replaceChildren();
+    if (this.sampleWorkflow.tracking.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'request-empty';
+      empty.textContent =
+        'Aucune demande envoyée. Une demande apparaîtra ici après validation sur la page Demandes.';
+      this.trackingRequests.append(empty);
+      return;
+    }
+
+    this.sampleWorkflow.tracking.forEach((request) => {
+      const card = document.createElement('article');
+      card.className = 'request-card sample-request-card';
+      card.dataset.requestType = 'samples';
+
+      const heading = document.createElement('div');
+      heading.className = 'request-card-heading';
+      const title = document.createElement('div');
+      const eyebrow = document.createElement('span');
+      eyebrow.className = 'request-eyebrow';
+      eyebrow.textContent = `Échantillon · ${formatDate(request.requestedAt)}`;
+      const name = document.createElement('h2');
+      name.textContent = `${request.referenceName} · Réf. ${request.referenceCode}`;
+      title.append(eyebrow, name);
+      const status = document.createElement('span');
+      status.className = 'order-status';
+      status.textContent = request.status;
+      heading.append(title, status);
+
+      const details = document.createElement('p');
+      details.className = 'tracking-details';
+      details.textContent = `${request.quantity} échantillon(s) · ${request.shippingAddress}`;
+
+      const timeline = document.createElement('ol');
+      timeline.className = 'request-timeline sample-timeline';
+      timeline.setAttribute('aria-label', 'Étapes de la demande d’échantillon');
+      const activeStep = sampleStatuses.indexOf(request.status);
+      sampleStatuses.forEach((step, index) => {
+        const item = document.createElement('li');
+        if (index <= activeStep) item.classList.add('is-complete');
+        if (index === activeStep) item.classList.add('is-current');
+        const dot = document.createElement('span');
+        dot.className = 'timeline-dot';
+        dot.setAttribute('aria-hidden', 'true');
+        if (index <= activeStep) dot.textContent = '✓';
+        const label = document.createElement('strong');
+        label.textContent = step;
+        const description = document.createElement('small');
+        description.textContent =
+          index < activeStep
+            ? 'Étape terminée'
+            : index === activeStep
+              ? 'Demande enregistrée'
+              : 'À venir';
+        item.append(dot, label, description);
+        timeline.append(item);
+      });
+
+      card.append(heading, details, timeline);
+      this.trackingRequests.append(card);
+    });
   }
 }
 
@@ -670,6 +868,75 @@ function detail(label: string, value: string): HTMLElement {
   content.textContent = value;
   item.append(key, content);
   return item;
+}
+
+function readSampleWorkflow(): SampleWorkflow {
+  const serialized = window.localStorage.getItem(sampleWorkflowStorageKey);
+  if (serialized === null) return emptySampleWorkflow();
+
+  let value: unknown;
+  try {
+    value = JSON.parse(serialized);
+  } catch (error) {
+    throw new Error('Les données sauvegardées ne sont pas un JSON valide.', {
+      cause: error,
+    });
+  }
+  if (
+    !isRecord(value) ||
+    (value.draft !== null && !isSampleDraft(value.draft)) ||
+    !Array.isArray(value.tracking) ||
+    !value.tracking.every(isSampleTracking)
+  ) {
+    throw new Error('Le format des demandes sauvegardées est invalide.');
+  }
+  return { draft: value.draft, tracking: value.tracking };
+}
+
+function writeSampleWorkflow(workflow: SampleWorkflow): void {
+  window.localStorage.setItem(
+    sampleWorkflowStorageKey,
+    JSON.stringify(workflow),
+  );
+}
+
+function isSampleDraft(value: unknown): value is SampleDraft {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.referenceCode === 'string' &&
+    typeof value.referenceName === 'string' &&
+    typeof value.quantity === 'number' &&
+    Number.isInteger(value.quantity) &&
+    typeof value.format === 'string' &&
+    typeof value.shippingAddress === 'string' &&
+    typeof value.internalReference === 'string'
+  );
+}
+
+function isSampleTracking(value: unknown): value is SampleTracking {
+  if (!isRecord(value)) return false;
+  const { status, requestedAt, ...draft } = value;
+  return (
+    isSampleDraft(draft) &&
+    isSampleStatus(status) &&
+    typeof requestedAt === 'string'
+  );
+}
+
+function isSampleStatus(value: unknown): value is SampleStatus {
+  return sampleStatuses.some((status) => status === value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf())
+    ? 'Date indisponible'
+    : new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(date);
 }
 
 function requiredElement<T extends HTMLElement>(

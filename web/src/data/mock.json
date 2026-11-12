@@ -108,6 +108,37 @@
           "minimumVolume": "10"
         }
       ]
+    },
+    {
+      "id": "citrus-protein-drink",
+      "title": "Arôme citron · boisson protéinée",
+      "keywords": ["citron", "citronné", "citronnée", "agrumes", "zeste"],
+      "application": "Boisson protéinée en poudre",
+      "profil_olfactif": "Citron frais, zeste vif et acidité nette",
+      "followup": "Quel volume prévisionnel souhaitez-vous pour ce lancement ?",
+      "recommendations": [
+        {
+          "id": "aroma-citrus-003",
+          "name": "Citron de Sicile",
+          "justification": "Citron jaune éclatant, zeste frais, attaque acidulée et finale propre.",
+          "price": null,
+          "minimumVolume": null
+        },
+        {
+          "id": "aroma-citrus-005",
+          "name": "Pamplemousse rose",
+          "justification": "Pamplemousse rose juteux, douceur fruitée, zeste amer et fraîcheur acidulée.",
+          "price": null,
+          "minimumVolume": null
+        },
+        {
+          "id": "aroma-fruit-019",
+          "name": "Pomme verte Granny",
+          "justification": "Pomme verte croquante, zeste végétal, fraîcheur acidulée et finale nette.",
+          "price": null,
+          "minimumVolume": null
+        }
+      ]
     }
   ]
 }

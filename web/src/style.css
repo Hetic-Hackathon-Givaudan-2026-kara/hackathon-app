@@ -1351,7 +1351,8 @@ body {
 .prototype-shell {
   display: grid;
   width: calc(100% - 12px);
-  min-height: calc(100dvh - 12px);
+  height: calc(100dvh - 12px);
+  min-height: 0;
   grid-template-columns: clamp(155px, 15.8vw, 216px) minmax(0, 1fr);
   margin: 6px;
   overflow: hidden;
@@ -1506,9 +1507,10 @@ body {
 .prototype-main {
   display: flex;
   min-width: 0;
-  min-height: calc(100dvh - 12px);
+  height: calc(100dvh - 12px);
+  min-height: 0;
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .prototype-topbar {
@@ -1552,19 +1554,23 @@ body {
 
 .prototype-content {
   display: flex;
-  width: min(940px, calc(100% - 64px));
+  width: calc(100% - 64px);
+  max-width: 1180px;
   flex: 1;
+  min-height: 0;
   flex-direction: column;
   align-items: center;
   margin: 0 auto;
+  overflow: hidden;
 }
 
 .welcome {
   display: flex;
   width: 100%;
+  flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
-  padding-top: 58px;
+  padding-top: clamp(12px, 4vh, 58px);
   text-align: center;
 }
 
@@ -1608,28 +1614,38 @@ body {
 .active-workspace {
   display: grid;
   width: 100%;
+  flex: 1;
   min-width: 0;
+  min-height: 0;
   grid-template-columns: minmax(0, 590px);
   justify-content: center;
-  margin-top: 24px;
+  margin-top: clamp(12px, 2.5vh, 24px);
 }
 
 .active-workspace.has-results {
   grid-template-columns: minmax(0, 1fr) minmax(290px, 0.8fr);
-  align-items: start;
+  align-items: stretch;
   gap: 18px;
 }
 
 .chat-column {
+  display: flex;
   min-width: 0;
+  min-height: 0;
+  flex-direction: column;
 }
 
 .prototype-conversation {
   display: grid;
-  max-height: 190px;
+  flex: 1;
+  min-height: 0;
   gap: 7px;
-  overflow: auto;
+  align-content: start;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 0 0 8px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .conversation-message {
@@ -1640,6 +1656,76 @@ body {
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 2px 6px rgb(13 20 21 / 3%);
+}
+
+.conversation-message.has-recommendations {
+  width: 100%;
+  max-width: 100%;
+}
+
+.chat-recommendations {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.chat-recommendation {
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid #e8e9df;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.chat-recommendation-heading,
+.chat-recommendation-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-recommendation-heading strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #151a1b;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-recommendation-heading span {
+  flex: 0 0 auto;
+  color: #898b85;
+  font-size: 8px;
+}
+
+.conversation-message .chat-recommendation > p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 4px 0;
+  color: #696b66;
+  font-size: 9px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.chat-recommendation-footer {
+  color: #343a35;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.chat-recommendation-footer button {
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid #e4e5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #4e514c;
+  font-size: 8px;
 }
 
 .conversation-message p {
@@ -1833,7 +1919,13 @@ body {
 .results-column {
   display: grid;
   min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  align-content: start;
   gap: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .brief-card,
@@ -1917,6 +2009,16 @@ body {
   display: grid;
   gap: 9px;
   margin-top: 12px;
+}
+
+.recommendation-empty {
+  margin: 12px 0 0;
+  padding: 12px;
+  border: 1px dashed #dedfd7;
+  border-radius: 9px;
+  color: #696b66;
+  font-size: 10px;
+  line-height: 1.5;
 }
 
 .recommendation {
@@ -2217,6 +2319,34 @@ body {
   white-space: nowrap;
 }
 
+.order-input-row {
+  display: grid;
+  gap: 6px;
+  padding: 9px 0;
+  border-bottom: 1px solid #eeeeec;
+}
+
+.order-input-row input,
+.order-input-row textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid #e3e5e1;
+  border-radius: 7px;
+  background: #fff;
+  color: #171d1c;
+  font: inherit;
+  font-size: 10px;
+}
+
+.order-input-row textarea {
+  resize: vertical;
+}
+
+#order-form[hidden] {
+  display: none;
+}
+
 .quantity-row {
   min-height: 38px;
 }
@@ -2395,6 +2525,25 @@ body {
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 4px 12px rgb(15 21 21 / 4%);
+}
+
+.request-empty {
+  margin: 0;
+  padding: 22px;
+  border: 1px dashed #dfe2dc;
+  border-radius: 12px;
+  background: #fff;
+  color: #737a74;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.tracking-details {
+  margin: 10px 0 0;
+  overflow-wrap: anywhere;
+  color: #777d78;
+  font-size: 9px;
+  line-height: 1.5;
 }
 
 .request-card-heading {
@@ -2579,6 +2728,56 @@ body {
   display: none;
 }
 
+.has-results .scenario-prompts {
+  display: none;
+}
+
+.has-results .prototype-note {
+  display: none;
+}
+
+.prototype-main.has-results .prototype-topbar {
+  min-height: 61px;
+  padding-top: 18px;
+}
+
+@media (max-height: 820px) and (min-width: 761px) {
+  .brief-card,
+  .recommendations-card {
+    padding: 9px;
+  }
+
+  .brief-fields {
+    margin-top: 6px;
+  }
+
+  .brief-row {
+    padding: 3px 0;
+  }
+
+  .recommendations-card .recommendation-list {
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .recommendations-card .recommendation {
+    padding: 6px;
+  }
+
+  .recommendations-card .recommendation h3 {
+    margin: 4px 0 2px;
+  }
+
+  .recommendations-card .recommendation-details {
+    gap: 8px;
+    margin: 4px 0;
+  }
+
+  .recommendations-card .recommendation-actions button {
+    min-height: 21px;
+  }
+}
+
 @media (max-width: 1050px) {
   .prototype-content {
     width: calc(100% - 44px);
@@ -2658,6 +2857,7 @@ body {
 @media (max-width: 760px) {
   .prototype-shell {
     width: 100%;
+    height: auto;
     min-height: 100dvh;
     grid-template-columns: minmax(0, 1fr);
     margin: 0;
@@ -2720,6 +2920,7 @@ body {
   }
 
   .prototype-main {
+    height: auto;
     min-height: calc(100dvh - 60px);
     overflow: visible;
   }
@@ -2739,6 +2940,8 @@ body {
 
   .prototype-content {
     width: calc(100% - 30px);
+    min-height: calc(100dvh - 120px);
+    overflow: visible;
   }
 
   .welcome {
@@ -2756,17 +2959,27 @@ body {
 
   .active-workspace,
   .active-workspace.has-results {
+    flex: 0 0 auto;
     grid-template-columns: minmax(0, 1fr);
     gap: 14px;
     margin-top: 20px;
   }
 
+  .chat-column {
+    min-height: 0;
+  }
+
   .results-column {
     grid-row: 2;
+    max-height: none;
+    overflow: visible;
   }
 
   .prototype-conversation {
-    max-height: 210px;
+    flex: 0 0 auto;
+    min-height: 110px;
+    overflow: visible;
+    scrollbar-gutter: auto;
   }
 
   .prototype-composer {

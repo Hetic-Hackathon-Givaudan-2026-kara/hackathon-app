@@ -5,6 +5,7 @@ import YAML from 'yamljs';
 import { fileURLToPath } from 'node:url';
 import { createCatalogRouter } from './routes/catalog.routes.js';
 import { createSamplesRouter } from './routes/samples.routes.js';
+import { OllamaUnavailableError } from './services/ollama.service.js';
 
 // En dev, la configuration vient de api/.env ; en production, de l'hébergeur
 try {
@@ -104,17 +105,24 @@ app.use(
     }
 
     const status =
-      typeof error === 'object' &&
-      error !== null &&
-      'status' in error &&
-      typeof error.status === 'number' &&
-      error.status >= 400 &&
-      error.status < 500
+      error instanceof OllamaUnavailableError
         ? error.status
-        : 500;
+        : typeof error === 'object' &&
+            error !== null &&
+            'status' in error &&
+            typeof error.status === 'number' &&
+            error.status >= 400 &&
+            error.status < 500
+          ? error.status
+          : 500;
     console.error('Erreur API :', error);
     response.status(status).json({
-      error: status < 500 ? 'Requête invalide.' : 'Erreur interne du serveur.',
+      error:
+        error instanceof OllamaUnavailableError
+          ? error.message
+          : status < 500
+            ? 'Requête invalide.'
+            : 'Erreur interne du serveur.',
     });
   },
 );

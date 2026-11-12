@@ -2,6 +2,15 @@ const QUALIFICATION_MODEL = 'qwen2.5:1.5b-instruct-q4_K_M';
 const EMBEDDING_MODEL = 'nomic-embed-text';
 const EMBEDDING_DIMENSIONS = 768;
 
+export class OllamaUnavailableError extends Error {
+  readonly status = 503;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'OllamaUnavailableError';
+  }
+}
+
 export interface IntentQualification {
   category: 'Flavor' | 'Fragrance';
   application: string;
@@ -29,15 +38,6 @@ const qualificationFormat = {
   additionalProperties: false,
 };
 
-const fallbackQualification: IntentQualification = {
-  category: 'Fragrance',
-  application: '',
-  profile_tags: [],
-  is_complete: false,
-  followup_question:
-    'Pouvez-vous préciser l’application et le profil sensoriel souhaités ?',
-};
-
 export async function qualifyIntent(
   prompt: string,
   category?: string,
@@ -58,28 +58,20 @@ export async function qualifyIntent(
       {
         role: 'system',
         content:
-          'Tu es un expert-aromaticien Givaudan. Tu qualifies exclusivement des demandes de recherche d’arômes ou de fragrances. ' +
+          'Tu es un interlocuteur-aromaticien Givaudan, chaleureux et naturel, qui échange avec le client pour comprendre son besoin; tu ne conduis pas un questionnaire. Tu qualifies exclusivement des demandes de recherche d’arômes ou de fragrances. ' +
           'Définis category à Flavor si le texte mentionne un arôme, le goût, une boisson, une saveur ou une protéine; ne demande jamais à l’utilisateur de choisir entre arôme et fragrance lorsque ces indices sont présents. ' +
           'Reste strictement dans le domaine d’application explicitement indiqué par l’utilisateur : ne propose jamais une application sans rapport et ne bascule jamais vers les boissons, le vin ou le champagne si la demande concerne un autre produit. ' +
-          'Extrais l’application et les descripteurs sensoriels, puis indique si la demande est assez précise pour recommander un produit. N’invente aucune contrainte absente du brief. ' +
-          'Le brief peut contenir des questions de suivi déjà posées et les réponses du client : ne répète jamais une question déjà posée et ne redemande pas une information déjà donnée. ' +
-          'Si une information manquante peut changer la recommandation ou sa formulation, définis is_complete à false et pose une seule question de suivi concrète et pertinente. Pour une boisson, demande si le produit est prêt à boire ou en poudre à diluer lorsque ce format n’est pas précisé. ' +
-          'Si une précision est nécessaire, pose une seule question de suivi strictement technique, portant uniquement sur le mode de transformation, le masquage de l’amertume, la tolérance thermique, le pH ou la solubilité. ' +
-          'Ne pose jamais de méta-question générique telle que « Voulez-vous des options ? », « Voulez-vous que je vous aide ? » ou une formulation équivalente. Ne pose aucune question marketing, commerciale, sportive ou destinée au grand public. Si aucune précision technique n’est nécessaire, définis followup_question à null. ' +
+          'Extrais l’application et les descripteurs sensoriels déjà exprimés, puis indique si une piste pertinente peut être proposée avec les informations disponibles. N’invente aucune contrainte absente du brief. Les champs volume, prix, allergènes et contraintes sont facultatifs et ne sont pas un formulaire à compléter. ' +
+          'Le brief peut contenir l’historique de l’échange : prends en compte les informations déjà données, ne répète pas les questions et ne redemande rien qui a déjà été précisé. ' +
+          'Par défaut, is_complete vaut true dès que tu peux proposer une première piste, même si certains détails manquent. Ne pose au maximum qu’une seule question, seulement si une ambiguïté bloque réellement une recommandation utile; ne demande pas les informations une par une. Sinon, définis followup_question à null et laisse la conversation avancer. ' +
+          'Si une précision est vraiment bloquante, pose une question courte, contextualisée et naturelle; ne transforme pas le volume, le prix, les allergènes ou les préférences techniques en checklist. ' +
+          'Ne pose jamais de méta-question générique telle que « Voulez-vous des options ? » ou « Voulez-vous que je vous aide ? ». N’ajoute pas de question marketing, commerciale, sportive ou destinée au grand public. ' +
           'Réponds uniquement avec un objet JSON conforme au schéma demandé.',
       },
       { role: 'user', content: `${context}${prompt}` },
     ],
     options: { temperature: 0 },
   });
-
-  if (payload === null) {
-    console.warn('Ollama indisponible : qualification de secours utilisée.');
-    return {
-      ...fallbackQualification,
-      category: promptCategory ?? fallbackQualification.category,
-    };
-  }
 
   const message = getRecord(payload, 'message');
   if (typeof message.content !== 'string') {
@@ -106,21 +98,6 @@ export async function qualifyIntent(
     category: promptCategory ?? extractedData.category,
   };
 
-  const searchContext = normalizeIntentText(
-    `${prompt}\n${qualification.application}`,
-  );
-  if (
-    qualification.category === 'Flavor' &&
-    /\b(?:boisson|drink|beverage)\b/u.test(searchContext) &&
-    !/\b(?:prete? a boire|poudre|diluer|ready to drink|rtd)\b/u.test(
-      searchContext,
-    )
-  ) {
-    qualification.is_complete = false;
-    qualification.followup_question =
-      'Votre boisson est-elle prête à boire ou préparée à partir d’une poudre à diluer ?';
-  }
-
   return qualification;
 }
 
@@ -136,10 +113,8 @@ export async function suggestCatalogRefinement(
       {
         role: 'system',
         content:
-          'Tu es un conseiller-aromaticien qui aide le client à trouver une piste satisfaisante dans un catalogue limité. ' +
-          'Aucun résultat pertinent n’a été trouvé pour le brief courant. Pose en français une seule question courte et concrète dont la réponse aidera à proposer une autre piste. ' +
-          'Lis le brief comme un historique : les lignes « Question de suivi posée » sont des questions déjà posées, ne les répète pas et ne redemande pas une information déjà donnée. ' +
-          'Explore un autre aspect sensoriel ou technique utile, ou demande quelle caractéristique le client souhaite changer. Ne répète pas que le catalogue ne contient aucun résultat et ne pose pas de question générique.',
+          'Tu es un interlocuteur-aromaticien chaleureux. Aucun résultat exact n’a été trouvé dans le catalogue limité. Réponds comme dans une conversation, sans transformer cet échec en questionnaire : reconnais le besoin, propose une piste voisine ou une façon simple d’ajuster le profil, puis invite le client à réagir avec ses propres mots. ' +
+          'Ne demande pas le volume, le prix ou les allergènes pour débloquer la recherche. Ne répète pas les informations déjà données et ne pose au maximum qu’une seule question si une précision est réellement indispensable. Une suggestion ou invitation peut être formulée sans point d’interrogation.',
       },
       {
         role: 'user',
@@ -158,10 +133,6 @@ export async function suggestCatalogRefinement(
     ],
     options: { temperature: 0.4 },
   });
-
-  if (payload === null) {
-    return getFallbackRefinementQuestion(prompt, qualification);
-  }
 
   const message = getRecord(payload, 'message');
   if (typeof message.content !== 'string' || !message.content.trim()) {
@@ -200,26 +171,26 @@ function getFallbackRefinementQuestion(
     /\b(?:boisson|drink|beverage)\b/u.test(context) &&
     !/\b(?:prete? a boire|poudre|diluer|ready to drink|rtd)\b/u.test(context)
   ) {
-    return 'Votre boisson est-elle prête à boire ou préparée à partir d’une poudre à diluer ?';
+    return 'Je peux déjà chercher une piste pour votre boisson; le format prêt à boire ou en poudre permettra ensuite d’affiner la sélection.';
   }
   if (qualification.category === 'Fragrance') {
     if (!/\b(?:rince|rincage|leave on|rinse off)\b/u.test(context)) {
-      return 'La fragrance est-elle destinée à un produit rincé, comme un shampoing, ou non rincé, comme une crème ?';
+      return 'Je vais partir de votre application et de votre profil; le mode rincé ou non rincé pourra affiner la sélection ensuite.';
     }
-    return 'Préférez-vous une fragrance plus fraîche, florale ou boisée ?';
+    return 'Je peux aussi orienter la recherche vers une facette plus fraîche, florale ou boisée selon votre préférence.';
   }
   if (
     !/\b(?:traitement thermique|chaleur|pasteuris|uht|cuisson)\b/u.test(context)
   ) {
-    return 'Votre produit subit-il un traitement thermique lors de sa fabrication ?';
+    return 'Le traitement thermique pourra affiner la sélection si c’est un enjeu pour votre produit.';
   }
   if (!/\b(?:amertume|amer|masquage|masquer)\b/u.test(context)) {
-    return 'Souhaitez-vous que l’arôme aide à masquer une amertume ou un arrière-goût ?';
+    return 'Si l’amertume est un point sensible, je peux aussi rechercher une note qui aide à l’équilibrer.';
   }
   if (!/\b(?:solubilite|soluble|dissolution|dissoudre)\b/u.test(context)) {
-    return 'La solubilité dans l’eau est-elle un critère important pour votre produit ?';
+    return 'La solubilité peut également servir à affiner la piste si elle est importante pour votre produit.';
   }
-  return 'Quel aspect souhaitez-vous ajuster pour vous rapprocher du résultat recherché : la note, la douceur ou l’intensité ?';
+  return 'Je peux ajuster la note, la douceur ou l’intensité selon la direction qui vous convient le mieux.';
 }
 
 function detectFlavorCategory(prompt: string): boolean {
@@ -239,11 +210,6 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     model: EMBEDDING_MODEL,
     prompt: text,
   });
-
-  if (payload === null) {
-    console.warn('Ollama indisponible : embedding nul utilisé.');
-    return Array<number>(EMBEDDING_DIMENSIONS).fill(0);
-  }
 
   if (!isRecord(payload) || !Array.isArray(payload.embedding)) {
     throw new Error('Ollama n’a pas renvoyé un tableau embedding.');
@@ -267,11 +233,10 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 async function postOllama(
   path: string,
   body: Record<string, unknown>,
-): Promise<unknown | null> {
+): Promise<unknown> {
+  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
   let response: Response;
   try {
-    const ollamaBaseUrl =
-      process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
     response = await fetch(`${ollamaBaseUrl}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -279,11 +244,25 @@ async function postOllama(
       signal: AbortSignal.timeout(30_000),
     });
   } catch (error) {
-    if (isOfflineFailure(error)) return null;
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      throw new OllamaUnavailableError(
+        'Ollama ne répond pas après 30 secondes. Vérifiez que le service est démarré.',
+      );
+    }
+    if (error instanceof TypeError) {
+      throw new OllamaUnavailableError(
+        'Impossible de joindre Ollama depuis l’API. Vérifiez que le service est démarré et que OLLAMA_BASE_URL est correct.',
+      );
+    }
     throw error;
   }
 
   if (!response.ok) {
+    if (response.status === 404 && typeof body.model === 'string') {
+      throw new OllamaUnavailableError(
+        `Le modèle Ollama « ${body.model} » est introuvable. Téléchargez-le avec « ollama pull ${body.model} ».`,
+      );
+    }
     throw new Error(
       `Ollama ${path} : ${response.status} ${await response.text()}`,
     );
@@ -349,11 +328,4 @@ function getRecord(value: unknown, label: string): Record<string, unknown> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isOfflineFailure(error: unknown): boolean {
-  return (
-    error instanceof TypeError ||
-    (error instanceof DOMException && error.name === 'TimeoutError')
-  );
 }
